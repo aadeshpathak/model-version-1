@@ -1,0 +1,553 @@
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@/context/UserContext';
+import { getMemberBills, getMemberNotices, getMemberExpenses, updateBill, addNotice, getSocietySettings } from '@/lib/firestoreServices';
+import { Timestamp } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import {
+  CreditCard,
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Download,
+  Bell,
+  Calendar,
+  IndianRupee,
+  ArrowRight,
+  Edit3,
+  Save,
+  X,
+  User,
+  Home,
+  Receipt,
+  TrendingUp,
+  Activity,
+  Zap
+} from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import type { Bill, Notice } from '@/lib/firestoreServices';
+
+export const MemberDashboard = () => {
+  const { uid, userEmail, userData, updateUserData } = useUser();
+  const { toast } = useToast();
+  const [bills, setBills] = useState<Bill[]>([]);
+  const [notices, setNotices] = useState<Notice[]>([]);
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [societySettings, setSocietySettings] = useState<any>({});
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [profileForm, setProfileForm] = useState({
+    fullName: '',
+    phone: '',
+    flatNumber: ''
+  });
+
+  useEffect(() => {
+    if (uid) {
+      setIsLoading(true);
+      const unsubscribeBills = getMemberBills(uid, (b) => {
+        setBills(b);
+        setIsLoading(false);
+      });
+      const unsubscribeNotices = getMemberNotices(uid, setNotices);
+      const unsubscribeExpenses = getMemberExpenses(uid, setExpenses);
+      const unsubscribeSettings = getSocietySettings(setSocietySettings);
+      return () => {
+        unsubscribeBills();
+        unsubscribeNotices();
+        unsubscribeExpenses();
+        unsubscribeSettings();
+      };
+    }
+  }, [uid]);
+
+  useEffect(() => {
+    if (userData) {
+      setProfileForm({
+        fullName: userData.fullName || '',
+        phone: userData.phone || '',
+        flatNumber: userData.flatNumber || ''
+      });
+    }
+  }, [userData]);
+
+  const handleProfileUpdate = async () => {
+    try {
+      await updateUserData(profileForm);
+      setIsEditingProfile(false);
+      toast({
+        title: "Profile Updated Successfully!",
+        description: "Your profile information has been saved.",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error('Profile update error:', error);
+      toast({
+        title: "Update Failed",
+        description: "Unable to save profile changes. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const memberData = {
+    name: userData?.fullName || userEmail.split('@')[0],
+    flatNumber: userData?.flatNumber || "Not set",
+    pendingAmount: bills.filter(b => b.status === 'pending').reduce((sum, b) => sum + (b.amount || 0), 0),
+    nextDueDate: (() => {
+      const pendingBill = bills.find(b => b.status === 'pending');
+      if (pendingBill && pendingBill.dueDate) {
+        return pendingBill.dueDate.toDate ? pendingBill.dueDate.toDate().toISOString().split('T')[0] : String(pendingBill.dueDate);
+      }
+      return "N/A";
+    })(),
+    recentPayments: bills.filter(b => b.status === 'paid').slice(0, 3).map(b => ({
+      id: b.id,
+      month: b.dueDate?.toDate ? b.dueDate.toDate().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'N/A',
+      amount: b.amount || 0,
+      status: b.status,
+      date: b.dueDate?.toDate ? b.dueDate.toDate().toISOString().split('T')[0] : 'N/A',
+      receipt: `#RC${b.id.slice(-3)}`
+    })),
+    currentBills: bills.slice(0, 2).map(b => ({
+      id: b.id,
+      month: b.dueDate?.toDate ? b.dueDate.toDate().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'N/A',
+      amount: b.amount || 0,
+      dueDate: b.dueDate?.toDate ? b.dueDate.toDate().toISOString().split('T')[0] : 'N/A',
+      status: b.status
+    })),
+    notices: notices.slice(0, 3).map(n => ({
+      id: n.id,
+      title: n.title,
+      date: n.sentAt?.toDate ? n.sentAt.toDate().toISOString().split('T')[0] : 'N/A',
+      type: "announcement"
+    }))
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'paid': return 'bg-gradient-success';
+      case 'pending': return 'bg-gradient-warning';
+      case 'overdue': return 'bg-gradient-danger';
+      case 'upcoming': return 'bg-secondary';
+      default: return 'bg-secondary';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'paid': return <CheckCircle2 className="w-4 h-4" />;
+      case 'pending': return <Clock className="w-4 h-4" />;
+      case 'overdue': return <AlertTriangle className="w-4 h-4" />;
+      case 'upcoming': return <Calendar className="w-4 h-4" />;
+      default: return <Clock className="w-4 h-4" />;
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      {/* Enhanced Hero Header */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 p-6 lg:p-8 rounded-b-3xl shadow-2xl mb-8">
+        <div className="absolute inset-0 bg-black/10"></div>
+        {/* Animated background elements */}
+        <div className="absolute -top-20 -right-20 w-40 h-40 bg-white/10 rounded-full blur-2xl animate-pulse"></div>
+        <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-white/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse delay-500"></div>
+
+        <div className="relative z-10">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+                  <User className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl lg:text-3xl font-bold text-white mb-1">
+                    Welcome back, {memberData.name}!
+                  </h1>
+                  <p className="text-indigo-100 text-base lg:text-lg flex items-center gap-2">
+                    <Home className="w-4 h-4" />
+                    Flat {memberData.flatNumber} • {societySettings.societyName || 'Green Valley Society'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-4 lg:gap-6 mt-4">
+                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-3 py-1">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                  <span className="text-white text-sm font-medium">Account Active</span>
+                </div>
+                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-3 py-1">
+                  <Activity className="w-4 h-4 text-indigo-200" />
+                  <span className="text-indigo-100 text-sm">Member since 2024</span>
+                </div>
+                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-3 py-1">
+                  <TrendingUp className="w-4 h-4 text-green-300" />
+                  <span className="text-green-200 text-sm">Payment Streak: 12 months</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="w-full lg:w-auto">
+              <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6 text-white shadow-xl hover-lift">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <p className="text-white/80 text-sm font-medium">Outstanding Amount</p>
+                    <p className="text-3xl font-bold">₹{memberData.pendingAmount.toLocaleString()}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-red-500 rounded-xl flex items-center justify-center">
+                    <IndianRupee className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-white/70">Payment Progress</span>
+                    <span className="text-white font-medium">
+                      {memberData.pendingAmount > 0 ? '75%' : '100%'}
+                    </span>
+                  </div>
+                  <div className="bg-white/20 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-green-400 to-blue-500 rounded-full h-2 transition-all duration-1000 ease-out"
+                      style={{ width: memberData.pendingAmount > 0 ? '75%' : '100%' }}
+                    ></div>
+                  </div>
+                  <p className="text-xs text-white/70">
+                    {memberData.pendingAmount > 0 ? '3 bills remaining' : 'All caught up!'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Enhanced Stats Cards */}
+      <div className="max-w-7xl mx-auto px-4 lg:px-8 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+          {/* Pending Amount Card */}
+          <Card className="group relative overflow-hidden bg-gradient-to-br from-red-50 via-orange-50 to-pink-50 border-0 shadow-xl hover-lift">
+            <div className="absolute inset-0 bg-gradient-to-br from-red-400/10 to-orange-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <div className="relative p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                  <IndianRupee className="w-7 h-7 text-white" />
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-red-900">₹{memberData.pendingAmount.toLocaleString()}</div>
+                  <div className="text-sm text-red-700 font-medium">Pending Amount</div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-red-800 font-medium">Status</div>
+                <div className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" />
+                  {memberData.pendingAmount > 0 ? 'Due Soon' : 'Paid'}
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Paid Amount Card */}
+          <Card className="group relative overflow-hidden bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 border-0 shadow-xl hover-lift">
+            <div className="absolute inset-0 bg-gradient-to-br from-green-400/10 to-emerald-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <div className="relative p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                  <CheckCircle2 className="w-7 h-7 text-white" />
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-green-900">
+                    ₹{bills.filter(b => b.status === 'paid').reduce((sum, b) => sum + (b.amount || 0), 0).toLocaleString()}
+                  </div>
+                  <div className="text-sm text-green-700 font-medium">Paid This Year</div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-green-800 font-medium">Performance</div>
+                <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3" />
+                  Excellent
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Next Due Date Card */}
+          <Card className="group relative overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border-0 shadow-xl hover-lift">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-400/10 to-indigo-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <div className="relative p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                  <Calendar className="w-7 h-7 text-white" />
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-blue-900">{memberData.nextDueDate}</div>
+                  <div className="text-sm text-blue-700 font-medium">Next Due Date</div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-blue-800 font-medium">Reminder</div>
+                <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  15 Days
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Notices Card */}
+          <Card className="group relative overflow-hidden bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50 border-0 shadow-xl hover-lift">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-400/10 to-pink-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <div className="relative p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                  <Bell className="w-7 h-7 text-white" />
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-purple-900">{memberData.notices.length}</div>
+                  <div className="text-sm text-purple-700 font-medium">New Notices</div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-purple-800 font-medium">Status</div>
+                <div className={`px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1 ${
+                  memberData.notices.length > 0
+                    ? 'bg-red-100 text-red-800'
+                    : 'bg-green-100 text-green-800'
+                }`}>
+                  {memberData.notices.length > 0 ? (
+                    <>
+                      <Zap className="w-3 h-3" />
+                      Unread
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-3 h-3" />
+                      All Read
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* Profile Section */}
+      <div className="max-w-7xl mx-auto px-4 lg:px-8 mb-8">
+        <Card className="shadow-card-elegant">
+          <div className="p-6 border-b border-border">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold">My Profile</h2>
+              {!isEditingProfile ? (
+                <Button variant="outline" size="sm" onClick={() => setIsEditingProfile(true)} className="hover-lift">
+                  <Edit3 className="w-4 h-4 mr-2" />
+                  Edit Profile
+                </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={handleProfileUpdate} className="hover-lift">
+                    <Save className="w-4 h-4 mr-2" />
+                    Save
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setIsEditingProfile(false)} className="hover-lift">
+                    <X className="w-4 h-4 mr-2" />
+                    Cancel
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="fullName">Full Name</Label>
+                {isEditingProfile ? (
+                  <Input
+                    id="fullName"
+                    value={profileForm.fullName}
+                    onChange={(e) => setProfileForm({...profileForm, fullName: e.target.value})}
+                    placeholder="Enter your full name"
+                    className="mt-2"
+                  />
+                ) : (
+                  <p className="text-lg font-medium mt-2">{profileForm.fullName || 'Not set'}</p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="phone">Phone Number</Label>
+                {isEditingProfile ? (
+                  <Input
+                    id="phone"
+                    value={profileForm.phone}
+                    onChange={(e) => setProfileForm({...profileForm, phone: e.target.value})}
+                    placeholder="Enter your phone number"
+                    className="mt-2"
+                  />
+                ) : (
+                  <p className="text-lg font-medium mt-2">{profileForm.phone || 'Not set'}</p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="flatNumber">Flat Number</Label>
+                <p className="text-lg font-medium mt-2">{profileForm.flatNumber || 'Not set'}</p>
+                <p className="text-sm text-muted-foreground mt-1">Contact admin to change flat number</p>
+              </div>
+            </div>
+            <div className="mt-6">
+              <Label>Email</Label>
+              <p className="text-lg font-medium mt-2">{userEmail}</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 lg:px-8 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Current Bills */}
+          <Card className="shadow-card-elegant">
+              <div className="p-6 border-b border-border">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold">Current Bills</h2>
+                  <Button variant="ghost" size="sm" onClick={() => toast({ title: "Redirecting to all bills..." })}>
+                    View All <ArrowRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                {memberData.currentBills.map((bill) => (
+                  <div key={bill.id} className="flex items-center justify-between p-4 rounded-xl bg-muted/50 hover:bg-muted transition-smooth">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${getStatusColor(bill.status)}`}>
+                        {getStatusIcon(bill.status)}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold">{bill.month}</h3>
+                        <p className="text-sm text-muted-foreground">Due: {bill.dueDate}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-lg">₹{bill.amount.toLocaleString()}</p>
+                      {bill.status === 'pending' && (
+                        <Button
+                          size="sm"
+                          className="mt-2 bg-gradient-primary"
+                          onClick={async () => {
+                            try {
+                              const today = new Date().toISOString().split('T')[0];
+                              const receiptNumber = `RC${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
+                              await updateBill(bill.id, {
+                                status: 'paid',
+                                paidDate: today,
+                                paymentMethod: 'Online',
+                                receiptNumber
+                              });
+                              // Create notice for admin
+                              await addNotice({
+                                title: `Bill Payment Received`,
+                                message: `${userEmail} has paid ₹${bill.amount} for ${bill.month}. Receipt: ${receiptNumber}`,
+                                target: 'all',
+                                sentBy: 'system',
+                                sentAt: Timestamp.now()
+                              });
+                              toast({ title: "Payment Successful!", description: `Your bill has been paid. Receipt: ${receiptNumber}`, variant: "default" });
+                            } catch (error) {
+                              console.error('Payment error:', error);
+                              toast({ title: "Payment Failed", description: "Unable to process payment. Please contact admin.", variant: "destructive" });
+                            }
+                          }}
+                        >
+                          <CreditCard className="w-4 h-4 mr-1" />
+                          Pay Now
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Card>
+
+          {/* Recent Notices */}
+          <Card className="shadow-card-elegant">
+            <div className="p-6 border-b border-border">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold">Recent Notices</h2>
+                <Badge variant="destructive">{memberData.notices.length} New</Badge>
+              </div>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                {memberData.notices.map((notice) => (
+                  <div key={notice.id} className="flex items-start gap-3 p-4 rounded-xl hover:bg-muted/50 transition-smooth cursor-pointer">
+                    <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-sm">{notice.title}</h3>
+                      <p className="text-xs text-muted-foreground mt-1">{notice.date}</p>
+                    </div>
+                    <Badge variant="outline" className="text-xs">
+                      {notice.type}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+
+
+      {/* Payment History */}
+      <div className="max-w-7xl mx-auto px-4 lg:px-8">
+        <Card className="shadow-card-elegant">
+          <div className="p-6 border-b border-border">
+            <h2 className="text-xl font-bold">Recent Payment History</h2>
+          </div>
+          <div className="p-6">
+            <div className="space-y-4">
+              {memberData.recentPayments.map((payment) => (
+                <div key={payment.id} className="flex items-center justify-between p-4 rounded-xl bg-success/5 border border-success/20 hover:bg-success/10 transition-smooth">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-success rounded-xl flex items-center justify-center">
+                      <CheckCircle2 className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">{payment.month}</h3>
+                      <p className="text-sm text-muted-foreground">Paid on {payment.date}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className="font-bold text-lg">₹{payment.amount.toLocaleString()}</p>
+                      <p className="text-xs text-success">{payment.receipt}</p>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => toast({ title: "Downloading receipt...", description: "#RC001" })}>
+                      <Download className="w-4 h-4 mr-1" />
+                      Receipt
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+};
