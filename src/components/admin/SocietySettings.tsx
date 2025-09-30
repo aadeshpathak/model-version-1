@@ -7,12 +7,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { getAllExpenses, getSocietyStats, getMembers } from '@/lib/firestoreServices';
-import { updatePassword, reauthenticateWithCredential, EmailAuthProvider, sendPasswordResetEmail } from 'firebase/auth';
+import { getAllExpenses, getSocietyStats } from '@/lib/firestoreServices';
+import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
 interface SocietySettingsData {
@@ -44,9 +43,6 @@ export const SocietySettings = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [activeMembers, setActiveMembers] = useState(0);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
-  const [passwordUpdateType, setPasswordUpdateType] = useState<'admin' | 'member'>('admin');
-  const [selectedMember, setSelectedMember] = useState('');
-  const [approvedMembers, setApprovedMembers] = useState<any[]>([]);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
@@ -106,12 +102,6 @@ export const SocietySettings = () => {
     return unsubscribe;
   }, []);
 
-  useEffect(() => {
-    const unsubscribe = getMembers((users) => {
-      setApprovedMembers(users.filter(u => u.approved && !u.dismissed && u.role !== 'admin'));
-    });
-    return unsubscribe;
-  }, []);
 
   const saveGeneralSettings = async () => {
     setLoading(true);
@@ -199,23 +189,14 @@ export const SocietySettings = () => {
     }
 
     try {
-      if (passwordUpdateType === 'admin') {
-        const user = auth.currentUser;
-        if (!user || !user.email) throw new Error("User not authenticated");
+      const user = auth.currentUser;
+      if (!user || !user.email) throw new Error("User not authenticated");
 
-        const credential = EmailAuthProvider.credential(user.email, passwordForm.currentPassword);
-        await reauthenticateWithCredential(user, credential);
-        await updatePassword(user, passwordForm.newPassword);
+      const credential = EmailAuthProvider.credential(user.email, passwordForm.currentPassword);
+      await reauthenticateWithCredential(user, credential);
+      await updatePassword(user, passwordForm.newPassword);
 
-        toast({ title: "Password Updated", description: "Admin password has been changed successfully." });
-      } else {
-        // Send password reset email to member
-        const member = approvedMembers.find(m => m.id === selectedMember);
-        if (!member) throw new Error("Member not found");
-
-        await sendPasswordResetEmail(auth, member.email);
-        toast({ title: "Reset Email Sent", description: `Password reset email sent to ${member.fullName}.` });
-      }
+      toast({ title: "Password Updated", description: "Admin password has been changed successfully." });
 
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setIsPasswordDialogOpen(false);
@@ -445,74 +426,42 @@ export const SocietySettings = () => {
             <DialogTitle>Update Password</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <RadioGroup value={passwordUpdateType} onValueChange={(value: any) => setPasswordUpdateType(value)}>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="admin" id="admin" />
-                <Label htmlFor="admin">Update Admin Password</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="member" id="member" />
-                <Label htmlFor="member">Reset Member Password</Label>
-              </div>
-            </RadioGroup>
+            <p className="text-sm text-gray-600">Update your admin password</p>
 
-            {passwordUpdateType === 'admin' ? (
-              <>
-                <div>
-                  <Label htmlFor="currentPassword">Current Password</Label>
-                  <Input
-                    id="currentPassword"
-                    type="password"
-                    value={passwordForm.currentPassword}
-                    onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
-                    placeholder="Enter current password"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="newPassword">New Password</Label>
-                  <Input
-                    id="newPassword"
-                    type="password"
-                    value={passwordForm.newPassword}
-                    onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
-                    placeholder="Enter new password"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    value={passwordForm.confirmPassword}
-                    onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
-                    placeholder="Confirm new password"
-                  />
-                </div>
-              </>
-            ) : (
-              <div>
-                <Label htmlFor="selectedMember">Select Member</Label>
-                <Select value={selectedMember} onValueChange={setSelectedMember}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a member" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {approvedMembers.map((member) => (
-                      <SelectItem key={member.id} value={member.id}>
-                        {member.fullName} ({member.email})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-muted-foreground mt-2">
-                  This will send a password reset email to the selected member.
-                </p>
-              </div>
-            )}
+            <div>
+              <Label htmlFor="currentPassword">Current Password</Label>
+              <Input
+                id="currentPassword"
+                type="password"
+                value={passwordForm.currentPassword}
+                onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
+                placeholder="Enter current password"
+              />
+            </div>
+            <div>
+              <Label htmlFor="newPassword">New Password</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={passwordForm.newPassword}
+                onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                placeholder="Enter new password"
+              />
+            </div>
+            <div>
+              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={passwordForm.confirmPassword}
+                onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
+                placeholder="Confirm new password"
+              />
+            </div>
 
             <div className="flex gap-2 pt-4">
               <Button onClick={handleUpdatePassword} className="flex-1">
-                {passwordUpdateType === 'admin' ? 'Update Password' : 'Send Reset Email'}
+                Update Password
               </Button>
               <Button variant="outline" onClick={() => setIsPasswordDialogOpen(false)}>
                 Cancel
