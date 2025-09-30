@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { getMemberBills, getMemberNotices, updateBill, addNotice, type Bill, type Notice } from '@/lib/firestoreServices';
+import { getMemberBills, getMemberNotices, updateBill, addNotice, markNoticeAsRead, type Bill, type Notice } from '@/lib/firestoreServices';
 import { Timestamp } from 'firebase/firestore';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -20,6 +20,8 @@ import { ExpenseManagement } from '@/components/admin/ExpenseManagement';
 import { FinancialReports } from '@/components/admin/FinancialReports';
 import { SocietySettings } from '@/components/admin/SocietySettings';
 import { NoticesManagement } from '@/components/admin/NoticesManagement';
+import MobileLayout from '@/components/mobile/MobileLayout';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type UserType = 'member' | 'admin' | null;
 
@@ -91,6 +93,7 @@ const SessionTimeoutWarning = () => {
 
 const Index = () => {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const {
     currentUser,
     currentView,
@@ -108,6 +111,19 @@ const Index = () => {
 
   const [bills, setBills] = useState<Bill[]>([]);
   const [notices, setNotices] = useState<Notice[]>([]);
+  const [markedNotices, setMarkedNotices] = useState<Set<string>>(new Set());
+
+  // Mark notices as read when current view is notices
+  useEffect(() => {
+    if (currentView === 'notices') {
+      notices.forEach(notice => {
+        if (!notice.readBy?.includes(uid) && !markedNotices.has(notice.id)) {
+          markNoticeAsRead(notice.id, uid);
+          setMarkedNotices(prev => new Set(prev).add(notice.id));
+        }
+      });
+    }
+  }, [currentView, notices, uid, markedNotices]);
 
   useEffect(() => {
     if (uid) {
@@ -121,6 +137,30 @@ const Index = () => {
   }, [uid]);
 
   const getMemberName = () => memberName;
+
+  const getTitle = () => {
+    if (currentUser === 'admin') {
+      switch (currentView) {
+        case 'dashboard': return 'Admin Dashboard';
+        case 'members': return 'Members';
+        case 'bills': return 'Bills';
+        case 'expenses': return 'Expenses';
+        case 'notices': return 'Notices';
+        case 'reports': return 'Reports';
+        case 'settings': return 'Settings';
+        default: return 'Admin Dashboard';
+      }
+    } else {
+      switch (currentView) {
+        case 'dashboard': return 'Dashboard';
+        case 'myBills': return 'My Bills';
+        case 'payments': return 'Payments';
+        case 'notices': return 'Notices';
+        case 'profile': return 'Profile';
+        default: return 'Dashboard';
+      }
+    }
+  };
 
   const renderView = () => {
     if (currentUser === 'admin') {
@@ -155,7 +195,10 @@ const Index = () => {
                       <p>Due: {bill.dueDate?.toDate().toLocaleDateString()}</p>
                     </div>
                     <div className="text-right">
-                      <p>₹{bill.amount}</p>
+                      <p>₹{(bill.amount + (bill.lateFee || 0)).toLocaleString()}</p>
+                      {bill.lateFee && bill.lateFee > 0 && (
+                        <p className="text-xs text-orange-600">+₹{bill.lateFee} late fee</p>
+                      )}
                       <Badge variant={bill.status === 'paid' ? "default" : "destructive"}>{bill.status}</Badge>
                       {bill.status !== 'paid' && (
                         <Button
@@ -212,7 +255,10 @@ const Index = () => {
                         <p>Paid</p>
                       </div>
                       <div className="text-right">
-                        <p>₹{bill.amount}</p>
+                        <p>₹{(bill.amount + (bill.lateFee || 0)).toLocaleString()}</p>
+                        {bill.lateFee && bill.lateFee > 0 && (
+                          <p className="text-xs text-orange-600">+₹{bill.lateFee} late fee</p>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -221,6 +267,7 @@ const Index = () => {
           </div>
         );
       } else if (currentView === 'notices') {
+
         return (
           <div className="space-y-6">
             {/* Enhanced Header */}
@@ -323,6 +370,20 @@ const Index = () => {
 
   if (!approved) {
     return <PendingApproval />;
+  }
+
+  // Mobile Layout
+  if (isMobile) {
+    return (
+      <MobileLayout title={getTitle()}>
+        <div
+          key={currentView}
+          className="animate-in fade-in-50 slide-in-from-right-4 duration-500 w-full"
+        >
+          {renderView()}
+        </div>
+      </MobileLayout>
+    );
   }
 
   return (

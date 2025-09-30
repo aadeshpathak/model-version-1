@@ -18,13 +18,14 @@ import {
   Calendar,
   Eye
 } from 'lucide-react';
-import { addNotice, getMembers, getAllNotices } from '@/lib/firestoreServices';
+import { addNotice, getMembers, getAllNotices, getSocietyStats } from '@/lib/firestoreServices';
 import { Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 export const NoticesManagement = () => {
   const [notices, setNotices] = useState<any[]>([]);
   const [approvedMembers, setApprovedMembers] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>(null);
   const [isSendDialogOpen, setIsSendDialogOpen] = useState(false);
   const { toast } = useToast();
 
@@ -34,6 +35,7 @@ export const NoticesManagement = () => {
     target: 'all',
     selectedMembers: [] as string[]
   });
+  const [readByDialog, setReadByDialog] = useState<{ open: boolean; readBy: string[] }>({ open: false, readBy: [] });
 
   useEffect(() => {
     const unsubscribeMembers = getMembers((users) => {
@@ -44,11 +46,23 @@ export const NoticesManagement = () => {
       setNotices(notices);
     });
 
+    const unsubscribeStats = getSocietyStats((statsData) => {
+      setStats(statsData);
+    });
+
     return () => {
       unsubscribeMembers();
       unsubscribeNotices();
+      unsubscribeStats();
     };
   }, []);
+
+  const calculateAvgReadRate = () => {
+    if (!notices.length || !stats?.totalMembers) return 'N/A';
+    const totalRead = notices.reduce((sum, notice) => sum + (notice.readBy?.length || 0), 0);
+    const totalPossible = notices.length * stats.totalMembers;
+    return totalPossible > 0 ? Math.round((totalRead / totalPossible) * 100) + '%' : 'N/A';
+  };
 
   const handleSendNotice = async () => {
     try {
@@ -187,7 +201,7 @@ export const NoticesManagement = () => {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Avg Read Rate</p>
-              <p className="text-2xl font-bold">N/A</p>
+              <p className="text-2xl font-bold">{calculateAvgReadRate()}</p>
             </div>
           </div>
         </Card>
@@ -210,11 +224,21 @@ export const NoticesManagement = () => {
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         <span>Sent: {notice.sentAt?.toDate().toLocaleDateString()}</span>
                         <span>Target: {notice.target === 'all' ? 'All Members' : `${Array.isArray(notice.target) ? notice.target.length : 1} Member(s)`}</span>
+                        <span>Read by: {notice.readBy?.length || 0}</span>
                       </div>
                     </div>
-                    <Badge variant="outline" className="ml-4">
-                      {notice.sentBy}
-                    </Badge>
+                    <div className="flex items-center gap-2 ml-4">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setReadByDialog({ open: true, readBy: notice.readBy || [] })}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <Badge variant="outline">
+                        {notice.sentBy}
+                      </Badge>
+                    </div>
                   </div>
                 </Card>
               ))}
@@ -228,6 +252,30 @@ export const NoticesManagement = () => {
           )}
         </div>
       </Card>
+
+      {/* Read By Dialog */}
+      <Dialog open={readByDialog.open} onOpenChange={(open) => setReadByDialog({ ...readByDialog, open })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Notice Read By</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {readByDialog.readBy.length > 0 ? (
+              readByDialog.readBy.map((memberId) => {
+                const member = approvedMembers.find(m => m.id === memberId);
+                return (
+                  <div key={memberId} className="flex items-center gap-2 p-2 border rounded">
+                    <User className="w-4 h-4" />
+                    <span>{member ? `${member.fullName} (Flat ${member.flatNumber})` : memberId}</span>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="text-muted-foreground">No one has read this notice yet.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

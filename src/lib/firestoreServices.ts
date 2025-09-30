@@ -29,6 +29,7 @@ export interface Bill {
   paidDate?: string;
   receiptNumber?: string;
   paymentMethod?: string;
+  lateFee?: number;
 }
 
 export interface Notice {
@@ -38,6 +39,7 @@ export interface Notice {
   target: 'all' | string[]; // 'all' or array of memberIds
   sentBy: string;
   sentAt: TimestampType;
+  readBy?: string[]; // array of memberIds who have read the notice
 }
 
 export interface Expense {
@@ -168,16 +170,35 @@ export const generateMonthlyBills = async (month: string, year: number, target: 
       .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
   }
 
-  const bills = users.map(user => ({
-    memberId: user.id,
-    amount: amount,
-    dueDate: Timestamp.fromDate(new Date(year, new Date(`${month} 1, ${year}`).getMonth() + 1, 0)), // Last day of month
-    status: 'pending',
-    month,
-    year,
-    target,
-    createdAt: serverTimestamp(),
-  }));
+  // Get late fee from settings
+  const settingsDoc = await getDoc(doc(db, 'settings', 'society'));
+  const lateFee = settingsDoc.exists() ? settingsDoc.data().lateFee || 0 : 0;
+
+  // Check for overdue bills for each user
+  const billsPromises = users.map(async (user) => {
+    const overdueBills = await getDocs(query(
+      collection(db, 'bills'),
+      where('memberId', '==', user.id),
+      where('status', '==', 'overdue')
+    ));
+
+    const hasOverdue = !overdueBills.empty;
+    const totalLateFee = hasOverdue ? lateFee : 0;
+
+    return {
+      memberId: user.id,
+      amount: amount + totalLateFee,
+      dueDate: Timestamp.fromDate(new Date(year, new Date(`${month} 1, ${year}`).getMonth() + 1, 0)), // Last day of month
+      status: 'pending',
+      month,
+      year,
+      target,
+      lateFee: totalLateFee,
+      createdAt: serverTimestamp(),
+    };
+  });
+
+  const bills = await Promise.all(billsPromises);
 
   const batch = [];
   for (const bill of bills) {
@@ -191,7 +212,16 @@ export const generateMonthlyBills = async (month: string, year: number, target: 
 export const addNotice = async (data: Omit<Notice, 'id'>) => {
   await addDoc(collection(db, 'notices'), {
     ...data,
-    sentAt: serverTimestamp()
+    sentAt: serverTimestamp(),
+    readBy: []
+  });
+};
+
+// Mark notice as read by member
+export const markNoticeAsRead = async (noticeId: string, memberId: string) => {
+  const noticeRef = doc(db, 'notices', noticeId);
+  await updateDoc(noticeRef, {
+    readBy: arrayUnion(memberId)
   });
 };
 
@@ -234,8 +264,8 @@ export const updateProfile = async (uid: string, data: Partial<Omit<User, 'id'>>
 export const getSocietyStats = (callback: (stats: any) => void) => {
   const unsubscribeUsers = onSnapshot(collection(db, 'users'), (userSnapshot) => {
     const users = userSnapshot.docs.map(doc => doc.data());
-    const totalMembers = users.length;
-    const activeMembers = users.filter(u => u.approved).length;
+    const totalMembers = users.filter(u => u.approved && u.role !== 'admin').length; // approved non-admin
+    const activeMembers = users.filter(u => u.approved && u.role !== 'admin').length; // same for now
 
     // Get bills stats
     const unsubscribeBills = onSnapshot(collection(db, 'bills'), (billSnapshot) => {

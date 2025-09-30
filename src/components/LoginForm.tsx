@@ -84,7 +84,7 @@ export const LoginForm = () => {
     'Member-Friendly Dashboards',
     'Automated Billing',
     'Community Analytics'
-  ], 80);
+  ], 50);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,6 +162,9 @@ export const LoginForm = () => {
           <div className="absolute top-16 right-1/4 w-24 h-24 bg-gradient-to-br from-indigo-400/40 to-purple-500/40 rounded-full blur-xl animate-float"></div>
           <div className="absolute bottom-20 right-1/3 w-32 h-32 bg-gradient-to-br from-pink-400/30 to-rose-500/30 rounded-full blur-2xl animate-float delay-500"></div>
           <div className="absolute top-1/3 left-1/4 w-20 h-20 bg-gradient-to-br from-cyan-400/35 to-blue-500/35 rounded-full blur-lg animate-float delay-1000"></div>
+          <div className="absolute top-1/2 right-1/4 w-16 h-16 bg-gradient-to-br from-orange-400/50 to-red-500/50 rounded-lg animate-spin"></div>
+          <div className="absolute bottom-1/4 left-1/3 w-12 h-12 bg-gradient-to-br from-green-400/40 to-emerald-500/40 rounded-full animate-bounce"></div>
+          <div className="absolute top-3/4 right-1/2 w-8 h-8 bg-gradient-to-br from-yellow-400/60 to-orange-500/60 rounded-full animate-pulse"></div>
         </div>
 
         {/* Navigation */}
@@ -210,7 +213,7 @@ export const LoginForm = () => {
 
                 {/* Main Headline with Typing Animation */}
                 <div className="space-y-4">
-                  <h1 className="text-5xl lg:text-7xl font-bold leading-tight">
+                  <h1 className="text-3xl md:text-5xl lg:text-7xl font-bold leading-tight">
                     <span className="text-gray-900">Revolutionize</span>
                     <br />
                     <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-gradient">

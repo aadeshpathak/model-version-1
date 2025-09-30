@@ -2,19 +2,28 @@ import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useUser } from '@/context/UserContext';
 import { useToast } from '@/hooks/use-toast';
 import { useSocietySettings } from '@/hooks/use-society-settings';
+import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 export const MemberProfile = () => {
   const { userData, updateUserData, userEmail } = useUser();
   const { toast } = useToast();
   const { settings: societySettings } = useSocietySettings();
   const [isEditing, setIsEditing] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [profileForm, setProfileForm] = useState({
     fullName: '',
     phone: '',
     flatNumber: ''
+  });
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
   });
 
   useEffect(() => {
@@ -34,6 +43,31 @@ export const MemberProfile = () => {
       toast({ title: "Profile Updated", description: "Your profile has been updated successfully." });
     } catch (error) {
       toast({ title: "Error", description: "Failed to update profile.", variant: "destructive" });
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast({ title: "Error", description: "New passwords do not match.", variant: "destructive" });
+      return;
+    }
+    if (passwordForm.newPassword.length < 6) {
+      toast({ title: "Error", description: "Password must be at least 6 characters.", variant: "destructive" });
+      return;
+    }
+    try {
+      const user = auth.currentUser;
+      if (!user || !user.email) throw new Error("User not authenticated");
+
+      const credential = EmailAuthProvider.credential(user.email, passwordForm.currentPassword);
+      await reauthenticateWithCredential(user, credential);
+      await updatePassword(user, passwordForm.newPassword);
+
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setIsUpdatingPassword(false);
+      toast({ title: "Password Updated", description: "Your password has been changed successfully." });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to update password.", variant: "destructive" });
     }
   };
 
@@ -181,6 +215,67 @@ export const MemberProfile = () => {
                     </div>
                   )}
                 </div>
+              </div>
+            </div>
+
+            {/* Password Update */}
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <div className="bg-gradient-to-r from-red-50 to-orange-50 p-6 rounded-2xl border border-red-200">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-orange-600 rounded-xl flex items-center justify-center">
+                      <span className="text-white text-lg">🔒</span>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-800">Security Settings</h3>
+                      <p className="text-sm text-gray-600">Update your password</p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => setIsUpdatingPassword(!isUpdatingPassword)}
+                    variant="outline"
+                    className="border-red-300 hover:bg-red-50"
+                  >
+                    {isUpdatingPassword ? 'Cancel' : 'Update Password'}
+                  </Button>
+                </div>
+                {isUpdatingPassword && (
+                  <div className="space-y-4 mt-4">
+                    <div>
+                      <Label htmlFor="currentPassword">Current Password</Label>
+                      <Input
+                        id="currentPassword"
+                        type="password"
+                        value={passwordForm.currentPassword}
+                        onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
+                        placeholder="Enter current password"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="newPassword">New Password</Label>
+                      <Input
+                        id="newPassword"
+                        type="password"
+                        value={passwordForm.newPassword}
+                        onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                        placeholder="Enter new password"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        value={passwordForm.confirmPassword}
+                        onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
+                        placeholder="Confirm new password"
+                      />
+                    </div>
+                    <Button onClick={handleUpdatePassword} className="w-full bg-red-500 hover:bg-red-600">
+                      Update Password
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
 

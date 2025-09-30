@@ -431,7 +431,7 @@ export const AdminDashboard = () => {
                   <Users className="w-8 h-8 text-white" />
                 </div>
                 <div className="text-right">
-                  <div className="text-3xl font-bold text-blue-900">{stats?.totalMembers || 0}</div>
+                  <div className="text-3xl font-bold text-blue-900">{stats?.activeMembers || 0}</div>
                   <div className="text-sm text-blue-700 font-medium">Total Members</div>
                 </div>
               </div>

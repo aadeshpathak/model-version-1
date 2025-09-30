@@ -154,9 +154,9 @@ export const ExpenseManagement = () => {
     count: filteredExpenses.length
   };
 
-  const monthlyChange = stats.lastMonth > 0 
-    ? ((stats.currentMonth - stats.lastMonth) / stats.lastMonth) * 100 
-    : 0;
+  const monthlyChange = stats.lastMonth > 0
+    ? ((stats.currentMonth - stats.lastMonth) / stats.lastMonth) * 100
+    : (stats.currentMonth > 0 ? 100 : 0);
 
   // Category-wise breakdown
   const categoryBreakdown = expenseCategories.map(category => {

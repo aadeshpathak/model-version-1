@@ -1,0 +1,27 @@
+CHANGELOG - Mobile Refactor
+
+Created Files:
+- src/components/mobile/MobileLayout.tsx
+- src/components/mobile/MobileBottomNav.tsx
+- src/components/mobile/MobileHeader.tsx
+- src/components/ui/MobileCard.tsx
+
+Modified Files:
+- src/App.css (added mobile overflow-x hidden)
+- src/lib/firebase.ts (updated to use environment variables)
+- .gitignore (added .env)
+- .env (created with Firebase config)
+- src/components/LoginForm.tsx (added mobile landing variant)
+- src/pages/Index.tsx (added mobile layout wrapper)
+- src/components/MemberDashboard.tsx (updated stats grid to 2 columns on mobile)
+- src/components/AdminDashboard.tsx (already 2 columns on mobile)
+
+Notes:
+- Mobile views are visible only on screens ≤md (768px) using md:hidden
+- Bottom navigation switches between views for members/admins
+- Charts are responsive with maintainAspectRatio: false
+- Safe area padding added for mobile devices
+- Framer Motion used for animations and micro-interactions
+- Touch targets are ≥44px high
+- No horizontal scrolling enforced with CSS
+- Accessibility basics included (aria-labels, focus outlines)

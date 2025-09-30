@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   FileText,
   Download,
@@ -24,7 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import {
   getSocietyStats,
   getRecentPayments,
-  getRecentBills,
+  getAllBills,
   getRecentExpenses,
   getAllExpenses,
   getMembers
@@ -50,6 +51,67 @@ import {
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
+// Function to convert number to words (Indian system)
+const numberToWords = (num: number): string => {
+  if (num === 0) return 'zero';
+
+  const units = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
+  const teens = ['ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+  const tens = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+  const scales = ['', 'thousand', 'lakh', 'crore'];
+
+  const convertHundreds = (n: number): string => {
+    let str = '';
+    if (n > 99) {
+      str += units[Math.floor(n / 100)] + ' hundred ';
+      n %= 100;
+    }
+    if (n > 19) {
+      str += tens[Math.floor(n / 10)] + ' ';
+      n %= 10;
+    } else if (n > 9) {
+      str += teens[n - 10] + ' ';
+      return str.trim();
+    }
+    if (n > 0) {
+      str += units[n] + ' ';
+    }
+    return str.trim();
+  };
+
+  let result = '';
+  let scaleIndex = 0;
+  let tempNum = num;
+
+  // Handle crores
+  if (tempNum >= 10000000) {
+    const crores = Math.floor(tempNum / 10000000);
+    result += convertHundreds(crores) + ' crore ';
+    tempNum %= 10000000;
+  }
+
+  // Handle lakhs
+  if (tempNum >= 100000) {
+    const lakhs = Math.floor(tempNum / 100000);
+    result += convertHundreds(lakhs) + ' lakh ';
+    tempNum %= 100000;
+  }
+
+  // Handle thousands
+  if (tempNum >= 1000) {
+    const thousands = Math.floor(tempNum / 1000);
+    result += convertHundreds(thousands) + ' thousand ';
+    tempNum %= 1000;
+  }
+
+  // Handle remaining
+  if (tempNum > 0) {
+    result += convertHundreds(tempNum);
+  }
+
+  return result.trim();
+};
+
 export const FinancialReports = () => {
   const [stats, setStats] = useState(null);
   const [recentPayments, setRecentPayments] = useState([]);
@@ -59,6 +121,7 @@ export const FinancialReports = () => {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState('12months');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -71,7 +134,7 @@ export const FinancialReports = () => {
       const [statsData, paymentsData, billsData, expensesData, allExpData, membersData] = await Promise.all([
         new Promise(resolve => getSocietyStats(resolve)),
         new Promise(resolve => getRecentPayments(resolve)),
-        new Promise(resolve => getRecentBills(resolve)),
+        new Promise(resolve => getAllBills(resolve)),
         new Promise(resolve => getRecentExpenses(resolve)),
         new Promise(resolve => getAllExpenses(resolve)),
         new Promise(resolve => getMembers(resolve))
@@ -105,7 +168,7 @@ export const FinancialReports = () => {
     const totalMembers = stats?.totalMembers || 0;
 
     // Calculate real monthly trend data from bills and expenses
-    const monthlyData = calculateMonthlyTrends();
+    const monthlyData = calculateMonthlyTrends(selectedPeriod);
 
     // Expense categories breakdown
     const expenseCategories = allExpenses.reduce((acc, expense) => {
@@ -140,22 +203,54 @@ export const FinancialReports = () => {
   };
 
   // Calculate monthly trends from real data
-  const calculateMonthlyTrends = () => {
+  const calculateMonthlyTrends = (period: string = '12months') => {
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const fullMonthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
     const activeMembers = stats?.activeMembers || 0;
 
-    // Get last 6 months
-    const months = [];
-    for (let i = 5; i >= 0; i--) {
-      const date = new Date(currentYear, currentDate.getMonth() - i, 1);
-      months.push({
-        month: monthNames[date.getMonth()],
-        year: date.getFullYear(),
-        monthIndex: date.getMonth(),
-        fullYear: date.getFullYear()
-      });
+    // Helper to get short month name
+    const getShortMonth = (monthStr: string) => {
+      const index = fullMonthNames.indexOf(monthStr);
+      return index !== -1 ? monthNames[index] : monthStr;
+    };
+
+    let months = [];
+    if (period === '6months') {
+      // Get last 6 months
+      for (let i = 5; i >= 0; i--) {
+        const date = new Date(currentYear, currentDate.getMonth() - i, 1);
+        months.push({
+          month: monthNames[date.getMonth()],
+          year: date.getFullYear(),
+          monthIndex: date.getMonth(),
+          fullYear: date.getFullYear()
+        });
+      }
+    } else if (period === '12months') {
+      // Get last 12 months
+      for (let i = 11; i >= 0; i--) {
+        const date = new Date(currentYear, currentDate.getMonth() - i, 1);
+        months.push({
+          month: monthNames[date.getMonth()],
+          year: date.getFullYear(),
+          monthIndex: date.getMonth(),
+          fullYear: date.getFullYear()
+        });
+      }
+    } else if (period.startsWith('month-')) {
+      // Specific month: month-Sep
+      const monthName = period.split('-')[1];
+      const monthIndex = monthNames.indexOf(monthName);
+      if (monthIndex !== -1) {
+        months = [{
+          month: monthName,
+          year: currentYear,
+          monthIndex,
+          fullYear: currentYear
+        }];
+      }
     }
 
     // Calculate revenue and expenses per month from bills and expenses data
@@ -164,7 +259,7 @@ export const FinancialReports = () => {
       const monthlyRevenue = recentBills
         .filter(bill => {
           if (!bill.month || !bill.year || bill.status !== 'paid') return false;
-          const billMonth = typeof bill.month === 'string' ? bill.month : monthNames[bill.month - 1];
+          const billMonth = typeof bill.month === 'string' ? getShortMonth(bill.month) : monthNames[bill.month - 1];
           return billMonth === month && bill.year === fullYear;
         })
         .reduce((sum, bill) => sum + (bill.amount || 0), 0);
@@ -173,7 +268,7 @@ export const FinancialReports = () => {
       const monthlyExpenses = allExpenses
         .filter(expense => {
           if (!expense.month || !expense.year) return false;
-          const expenseMonth = typeof expense.month === 'string' ? expense.month : monthNames[expense.month - 1];
+          const expenseMonth = typeof expense.month === 'string' ? getShortMonth(expense.month) : monthNames[expense.month - 1];
           return expenseMonth === month && expense.year === fullYear;
         })
         .reduce((sum, expense) => sum + (expense.amount || 0), 0);
@@ -189,15 +284,14 @@ export const FinancialReports = () => {
       };
     });
 
-    // If no data, provide fallback with current totals
+    // If no data, return with zeros
     if (monthlyTrends.every(m => m.revenue === 0 && m.expenses === 0)) {
-      const fallbackData = monthlyTrends.map((item, index) => ({
+      return monthlyTrends.map(item => ({
         ...item,
-        revenue: index === monthlyTrends.length - 1 ? (stats?.totalCollection || 0) / 1000 : 0,
-        expenses: index === monthlyTrends.length - 1 ? (stats?.totalExpenses || 0) / 1000 : 0,
+        revenue: 0,
+        expenses: 0,
         members: activeMembers
       }));
-      return fallbackData;
     }
 
     return monthlyTrends;
@@ -634,12 +728,15 @@ export const FinancialReports = () => {
       {/* Key Metrics Dashboard */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
         <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-100 border-green-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-green-700">Total Revenue</p>
-              <p className="text-3xl font-bold text-green-900">
-                ₹{metrics.totalRevenue.toFixed(2)}
-              </p>
+           <div className="flex items-center justify-between">
+             <div>
+               <p className="text-sm font-medium text-green-700">Total Revenue</p>
+               <p className="text-3xl font-bold text-green-900">
+                 ₹{metrics.totalRevenue.toLocaleString('en-IN')}
+               </p>
+               <p className="text-xs text-green-600 mt-1">
+                 {numberToWords(Math.floor(metrics.totalRevenue))} rupees only
+               </p>
               <p className="text-xs text-green-600 mt-1">
                 <TrendingUp className="w-3 h-3 inline mr-1" />
                 {metrics.monthlyData.length > 1 ?
@@ -659,12 +756,15 @@ export const FinancialReports = () => {
         </Card>
 
         <Card className="p-6 bg-gradient-to-br from-red-50 to-rose-100 border-red-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-red-700">Total Expenses</p>
-              <p className="text-3xl font-bold text-red-900">
-                ₹{metrics.totalExpenses.toFixed(2)}
-              </p>
+           <div className="flex items-center justify-between">
+             <div>
+               <p className="text-sm font-medium text-red-700">Total Expenses</p>
+               <p className="text-3xl font-bold text-red-900">
+                 ₹{metrics.totalExpenses.toLocaleString('en-IN')}
+               </p>
+               <p className="text-xs text-red-600 mt-1">
+                 {numberToWords(Math.floor(metrics.totalExpenses))} rupees only
+               </p>
               <p className="text-xs text-red-600 mt-1">
                 <TrendingUp className="w-3 h-3 inline mr-1" />
                 {metrics.monthlyData.length > 1 ?
@@ -684,12 +784,15 @@ export const FinancialReports = () => {
         </Card>
 
         <Card className="p-6 bg-gradient-to-br from-blue-50 to-indigo-100 border-blue-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-blue-700">Net Income</p>
-              <p className="text-3xl font-bold text-blue-900">
-                ₹{metrics.netIncome.toFixed(2)}
-              </p>
+           <div className="flex items-center justify-between">
+             <div>
+               <p className="text-sm font-medium text-blue-700">Net Income</p>
+               <p className="text-3xl font-bold text-blue-900">
+                 ₹{Math.abs(metrics.netIncome).toLocaleString('en-IN')}
+               </p>
+               <p className="text-xs text-blue-600 mt-1">
+                 {numberToWords(Math.floor(Math.abs(metrics.netIncome)))} rupees only
+               </p>
               <p className="text-xs text-blue-600 mt-1">
                 <Target className="w-3 h-3 inline mr-1" />
                 {metrics.netIncome >= 0 ? 'Profit' : 'Loss'}
@@ -729,6 +832,36 @@ export const FinancialReports = () => {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
+          <div className="mb-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">Financial Overview</h2>
+                <p className="text-gray-600">Key metrics and trends at a glance</p>
+              </div>
+              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Select period" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="6months">Last 6 Months</SelectItem>
+                  <SelectItem value="12months">Last 12 Months</SelectItem>
+                  <SelectItem value="month-Jan">January</SelectItem>
+                  <SelectItem value="month-Feb">February</SelectItem>
+                  <SelectItem value="month-Mar">March</SelectItem>
+                  <SelectItem value="month-Apr">April</SelectItem>
+                  <SelectItem value="month-May">May</SelectItem>
+                  <SelectItem value="month-Jun">June</SelectItem>
+                  <SelectItem value="month-Jul">July</SelectItem>
+                  <SelectItem value="month-Aug">August</SelectItem>
+                  <SelectItem value="month-Sep">September</SelectItem>
+                  <SelectItem value="month-Oct">October</SelectItem>
+                  <SelectItem value="month-Nov">November</SelectItem>
+                  <SelectItem value="month-Dec">December</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           {metrics.monthlyData && metrics.monthlyData.length > 0 ? (
             <>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -809,8 +942,33 @@ export const FinancialReports = () => {
 
         <TabsContent value="visualizations" className="space-y-6">
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Financial Visualizations</h2>
-            <p className="text-gray-600">Comprehensive charts and graphs for financial analysis</p>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">Financial Visualizations</h2>
+                <p className="text-gray-600">Comprehensive charts and graphs for financial analysis</p>
+              </div>
+              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Select period" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="6months">Last 6 Months</SelectItem>
+                  <SelectItem value="12months">Last 12 Months</SelectItem>
+                  <SelectItem value="month-Jan">January</SelectItem>
+                  <SelectItem value="month-Feb">February</SelectItem>
+                  <SelectItem value="month-Mar">March</SelectItem>
+                  <SelectItem value="month-Apr">April</SelectItem>
+                  <SelectItem value="month-May">May</SelectItem>
+                  <SelectItem value="month-Jun">June</SelectItem>
+                  <SelectItem value="month-Jul">July</SelectItem>
+                  <SelectItem value="month-Aug">August</SelectItem>
+                  <SelectItem value="month-Sep">September</SelectItem>
+                  <SelectItem value="month-Oct">October</SelectItem>
+                  <SelectItem value="month-Nov">November</SelectItem>
+                  <SelectItem value="month-Dec">December</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {metrics.monthlyData && metrics.monthlyData.length > 0 ? (

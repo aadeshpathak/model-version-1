@@ -5,9 +5,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { getAllExpenses, getSocietyStats, getMembers } from '@/lib/firestoreServices';
+import { updatePassword, reauthenticateWithCredential, EmailAuthProvider, sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 interface SocietySettingsData {
   societyName: string;
@@ -34,6 +40,18 @@ export const SocietySettings = () => {
   });
   const [loading, setLoading] = useState(false);
   const [isEditingGeneral, setIsEditingGeneral] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [activeMembers, setActiveMembers] = useState(0);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [passwordUpdateType, setPasswordUpdateType] = useState<'admin' | 'member'>('admin');
+  const [selectedMember, setSelectedMember] = useState('');
+  const [approvedMembers, setApprovedMembers] = useState<any[]>([]);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
 
   // Load settings from Firestore on component mount
   useEffect(() => {
@@ -81,6 +99,20 @@ export const SocietySettings = () => {
     return unsubscribe;
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = getSocietyStats((stats) => {
+      setActiveMembers(stats.activeMembers || 0);
+    });
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = getMembers((users) => {
+      setApprovedMembers(users.filter(u => u.approved && !u.dismissed && u.role !== 'admin'));
+    });
+    return unsubscribe;
+  }, []);
+
   const saveGeneralSettings = async () => {
     setLoading(true);
     try {
@@ -104,6 +136,91 @@ export const SocietySettings = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+  const calculateMaintenanceFee = async () => {
+    try {
+      const expenses = await new Promise<any[]>((resolve) => getAllExpenses(resolve));
+      if (expenses.length === 0) {
+        toast({
+          title: "No Expenses Found",
+          description: "Cannot calculate maintenance fee without expense data.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Filter expenses for selected month and year
+      const selectedMonthName = monthNames[parseInt(selectedMonth) - 1];
+      const filteredExpenses = expenses.filter(expense =>
+        expense.month === selectedMonthName && parseInt(expense.year) === parseInt(selectedYear)
+      );
+
+      if (filteredExpenses.length === 0) {
+        toast({
+          title: "No Expenses Found",
+          description: `No expenses found for ${selectedMonthName}/${selectedYear}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const totalExpenses = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+
+      // Divide by active members (excluding admins)
+      const calculatedFee = activeMembers > 0 ? Math.round((totalExpenses / activeMembers) * 100) / 100 : 0;
+
+      setSettings({ ...settings, maintenanceFee: calculatedFee });
+
+      toast({
+        title: "Maintenance Fee Calculated",
+        description: `Calculated ₹${calculatedFee} per member based on ${selectedMonthName}/${selectedYear} expenses divided by ${activeMembers} members.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Calculation Failed",
+        description: "Failed to calculate maintenance fee.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast({ title: "Error", description: "New passwords do not match.", variant: "destructive" });
+      return;
+    }
+    if (passwordForm.newPassword.length < 6) {
+      toast({ title: "Error", description: "Password must be at least 6 characters.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      if (passwordUpdateType === 'admin') {
+        const user = auth.currentUser;
+        if (!user || !user.email) throw new Error("User not authenticated");
+
+        const credential = EmailAuthProvider.credential(user.email, passwordForm.currentPassword);
+        await reauthenticateWithCredential(user, credential);
+        await updatePassword(user, passwordForm.newPassword);
+
+        toast({ title: "Password Updated", description: "Admin password has been changed successfully." });
+      } else {
+        // Send password reset email to member
+        const member = approvedMembers.find(m => m.id === selectedMember);
+        if (!member) throw new Error("Member not found");
+
+        await sendPasswordResetEmail(auth, member.email);
+        toast({ title: "Reset Email Sent", description: `Password reset email sent to ${member.fullName}.` });
+      }
+
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setIsPasswordDialogOpen(false);
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to update password.", variant: "destructive" });
     }
   };
 
@@ -187,21 +304,66 @@ export const SocietySettings = () => {
                 <p className="text-lg font-medium mt-2">{settings.address || 'Not set'}</p>
               )}
             </div>
+            <div className="pt-4 border-t border-gray-200">
+              <Button
+                variant="outline"
+                onClick={() => setIsPasswordDialogOpen(true)}
+                className="w-full border-red-300 hover:bg-red-50 text-red-600"
+              >
+                🔒 Update Password
+              </Button>
+            </div>
           </div>
         </Card>
 
         <Card className="p-6">
           <h2 className="text-xl font-bold mb-4">Financial Settings</h2>
           <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="selectedMonth">Month</Label>
+                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 12 }, (_, i) => (
+                      <SelectItem key={i + 1} value={(i + 1).toString()}>
+                        {new Date(0, i).toLocaleString('default', { month: 'long' })}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="selectedYear">Year</Label>
+                <Input
+                  id="selectedYear"
+                  type="number"
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(e.target.value)}
+                  min="2020"
+                  max="2030"
+                />
+              </div>
+            </div>
             <div>
               <Label htmlFor="maintenanceFee">Monthly Maintenance Fee (₹)</Label>
-              <Input
-                id="maintenanceFee"
-                type="number"
-                value={settings.maintenanceFee}
-                onChange={(e) => setSettings({...settings, maintenanceFee: parseFloat(e.target.value) || 0})}
-                placeholder="2500"
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="maintenanceFee"
+                  type="number"
+                  value={settings.maintenanceFee}
+                  onChange={(e) => setSettings({...settings, maintenanceFee: parseFloat(e.target.value) || 0})}
+                  placeholder="2500"
+                />
+                <Button type="button" variant="outline" onClick={calculateMaintenanceFee}>
+                  Calculate
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Click "Calculate" to set fee based on selected month's expenses
+              </p>
             </div>
             <div>
               <Label htmlFor="lateFee">Late Payment Fee (₹)</Label>
@@ -275,6 +437,90 @@ export const SocietySettings = () => {
           {loading ? 'Saving...' : 'Save Settings'}
         </Button>
       </div>
+
+      {/* Password Update Dialog */}
+      <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Update Password</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <RadioGroup value={passwordUpdateType} onValueChange={(value: any) => setPasswordUpdateType(value)}>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="admin" id="admin" />
+                <Label htmlFor="admin">Update Admin Password</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="member" id="member" />
+                <Label htmlFor="member">Reset Member Password</Label>
+              </div>
+            </RadioGroup>
+
+            {passwordUpdateType === 'admin' ? (
+              <>
+                <div>
+                  <Label htmlFor="currentPassword">Current Password</Label>
+                  <Input
+                    id="currentPassword"
+                    type="password"
+                    value={passwordForm.currentPassword}
+                    onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
+                    placeholder="Enter current password"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="newPassword">New Password</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    value={passwordForm.newPassword}
+                    onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                    placeholder="Enter new password"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={passwordForm.confirmPassword}
+                    onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
+                    placeholder="Confirm new password"
+                  />
+                </div>
+              </>
+            ) : (
+              <div>
+                <Label htmlFor="selectedMember">Select Member</Label>
+                <Select value={selectedMember} onValueChange={setSelectedMember}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a member" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {approvedMembers.map((member) => (
+                      <SelectItem key={member.id} value={member.id}>
+                        {member.fullName} ({member.email})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground mt-2">
+                  This will send a password reset email to the selected member.
+                </p>
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-4">
+              <Button onClick={handleUpdatePassword} className="flex-1">
+                {passwordUpdateType === 'admin' ? 'Update Password' : 'Send Reset Email'}
+              </Button>
+              <Button variant="outline" onClick={() => setIsPasswordDialogOpen(false)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

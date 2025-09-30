@@ -1,6 +1,8 @@
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import MobileCard from '@/components/ui/MobileCard';
+import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/context/UserContext';
 import { getMemberBills, getMemberNotices, getMemberExpenses, updateBill, addNotice, getSocietySettings } from '@/lib/firestoreServices';
@@ -158,10 +160,175 @@ export const MemberDashboard = () => {
     );
   }
 
+  // Mobile Dashboard
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      {/* Enhanced Hero Header */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 p-6 lg:p-8 rounded-b-3xl shadow-2xl mb-8">
+    <>
+      {/* Mobile Dashboard */}
+      <div className="md:hidden min-h-screen bg-white overflow-x-hidden">
+        {/* Header */}
+        <motion.div
+          className="bg-white shadow-sm p-6 border-b"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-sm text-gray-600">Welcome back, {memberData.name}</p>
+        </motion.div>
+
+        <div className="p-4 space-y-6 pb-24">
+          {/* Stats Carousel */}
+          <motion.div
+            className="overflow-x-auto pb-2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.1, duration: 0.4 }}
+          >
+            <div className="flex gap-4 w-max">
+              <MobileCard className="w-32 text-center flex-shrink-0">
+                <div className="text-xl font-bold text-red-600">₹{memberData.pendingAmount.toLocaleString()}</div>
+                <div className="text-xs text-gray-600 mt-1">Pending</div>
+              </MobileCard>
+              <MobileCard className="w-32 text-center flex-shrink-0">
+                <div className="text-xl font-bold text-green-600">₹{bills.filter(b => b.status === 'paid').reduce((sum, b) => sum + (b.amount || 0), 0).toLocaleString()}</div>
+                <div className="text-xs text-gray-600 mt-1">Paid</div>
+              </MobileCard>
+              <MobileCard className="w-32 text-center flex-shrink-0">
+                <div className="text-xl font-bold text-blue-600">{memberData.nextDueDate}</div>
+                <div className="text-xs text-gray-600 mt-1">Next Due</div>
+              </MobileCard>
+              <MobileCard className="w-32 text-center flex-shrink-0">
+                <div className="text-xl font-bold text-purple-600">{memberData.notices.length}</div>
+                <div className="text-xs text-gray-600 mt-1">Notices</div>
+              </MobileCard>
+            </div>
+          </motion.div>
+
+          {/* Quick Actions Carousel */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+          >
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">Quick Actions</h2>
+            <div className="overflow-x-auto pb-2">
+              <div className="flex gap-3 w-max">
+                <motion.button
+                  className="bg-blue-500 text-white p-4 rounded-2xl font-medium text-center shadow-lg min-w-[120px] flex-shrink-0"
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setCurrentView('myBills')}
+                >
+                  <div className="text-sm">View Bills</div>
+                </motion.button>
+                <motion.button
+                  className="bg-green-500 text-white p-4 rounded-2xl font-medium text-center shadow-lg min-w-[120px] flex-shrink-0"
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setCurrentView('payments')}
+                >
+                  <div className="text-sm">Payments</div>
+                </motion.button>
+                <motion.button
+                  className="bg-purple-500 text-white p-4 rounded-2xl font-medium text-center shadow-lg min-w-[120px] flex-shrink-0"
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setCurrentView('notices')}
+                >
+                  <div className="text-sm">Notices</div>
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Current Bills */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.4 }}
+          >
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">Current Bills</h2>
+            <div className="max-h-64 overflow-y-auto space-y-3">
+              {memberData.currentBills.map((bill, index) => (
+                <motion.div
+                  key={bill.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.4 + index * 0.1, duration: 0.3 }}
+                >
+                  <MobileCard>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="font-semibold">{bill.month}</h3>
+                        <p className="text-sm text-gray-600">Due: {bill.dueDate}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-lg">₹{bill.amount.toLocaleString()}</p>
+                        {bill.status === 'pending' && (
+                          <motion.button
+                            className="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm mt-2"
+                            whileTap={{ scale: 0.95 }}
+                            onClick={async () => {
+                              try {
+                                const today = new Date().toISOString().split('T')[0];
+                                const receiptNumber = `RC${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
+                                await updateBill(bill.id, {
+                                  status: 'paid',
+                                  paidDate: today,
+                                  paymentMethod: 'Online',
+                                  receiptNumber
+                                });
+                                await addNotice({
+                                  title: `Bill Payment Received`,
+                                  message: `${userEmail} has paid ₹${bill.amount} for ${bill.month}. Receipt: ${receiptNumber}`,
+                                  target: 'all',
+                                  sentBy: 'system',
+                                  sentAt: Timestamp.now()
+                                });
+                                toast({ title: "Payment Successful", description: `Bill paid successfully. Receipt: ${receiptNumber}` });
+                              } catch (error) {
+                                toast({ title: "Payment Failed", description: "Please try again.", variant: "destructive" });
+                              }
+                            }}
+                          >
+                            Pay Now
+                          </motion.button>
+                        )}
+                      </div>
+                    </div>
+                  </MobileCard>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Recent Notices */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5, duration: 0.4 }}
+          >
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">Recent Notices</h2>
+            <div className="max-h-64 overflow-y-auto space-y-3">
+              {memberData.notices.map((notice, index) => (
+                <motion.div
+                  key={notice.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.6 + index * 0.1, duration: 0.3 }}
+                >
+                  <MobileCard>
+                    <h3 className="font-semibold text-sm">{notice.title}</h3>
+                    <p className="text-xs text-gray-600 mt-1">{notice.date}</p>
+                  </MobileCard>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Desktop Dashboard */}
+      <div className="hidden md:block min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        {/* Enhanced Hero Header */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 p-6 lg:p-8 rounded-b-3xl shadow-2xl mb-8">
         <div className="absolute inset-0 bg-black/10"></div>
         {/* Animated background elements */}
         <div className="absolute -top-20 -right-20 w-40 h-40 bg-white/10 rounded-full blur-2xl animate-pulse"></div>
@@ -238,7 +405,7 @@ export const MemberDashboard = () => {
 
       {/* Enhanced Stats Cards */}
       <div className="max-w-7xl mx-auto px-4 lg:px-8 mb-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
           {/* Pending Amount Card */}
           <Card className="group relative overflow-hidden bg-gradient-to-br from-red-50 via-orange-50 to-pink-50 border-0 shadow-xl hover-lift">
             <div className="absolute inset-0 bg-gradient-to-br from-red-400/10 to-orange-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -549,5 +716,6 @@ export const MemberDashboard = () => {
         </Card>
       </div>
     </div>
+    </>
   );
 };

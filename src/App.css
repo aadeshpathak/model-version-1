@@ -37,3 +37,10 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Mobile-specific styles */
+@media (max-width: 767px) {
+  html, body, #root {
+    overflow-x: hidden;
+  }
+}

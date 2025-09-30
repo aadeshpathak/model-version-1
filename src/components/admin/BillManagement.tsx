@@ -19,7 +19,10 @@ import {
   Download,
   Send
 } from 'lucide-react';
-import { getMembers, getAllBills, generateMonthlyBills, updateBill, type User as Member, type Bill } from '@/lib/firestoreServices';
+import { getMembers, getAllBills, generateMonthlyBills, updateBill, addNotice, type User as Member, type Bill } from '@/lib/firestoreServices';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 export const BillManagement = () => {
@@ -34,7 +37,9 @@ export const BillManagement = () => {
   const [generateForm, setGenerateForm] = useState({
     month: (new Date().getMonth() + 1).toString(),
     year: new Date().getFullYear().toString(),
-    amount: '2500'
+    amount: '2500',
+    target: 'all',
+    selectedMember: ''
   });
 
   useEffect(() => {
@@ -42,6 +47,22 @@ export const BillManagement = () => {
       setMembers(users.filter(u => u.approved));
     });
     const unsubscribeBills = getAllBills(setBills);
+
+    // Load settings for default amount
+    const loadSettings = async () => {
+      try {
+        const docRef = doc(db, 'settings', 'society');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setGenerateForm(prev => ({ ...prev, amount: data.maintenanceFee?.toString() || '2500' }));
+        }
+      } catch (error) {
+        console.error('Error loading settings:', error);
+      }
+    };
+    loadSettings();
+
     return () => {
       unsubscribeMembers();
       unsubscribeBills();
@@ -84,7 +105,8 @@ export const BillManagement = () => {
 
       const monthName = months[parseInt(generateForm.month) - 1];
       const amount = parseFloat(generateForm.amount);
-      await generateMonthlyBills(monthName, parseInt(generateForm.year), 'all', amount);
+      const target = generateForm.target === 'all' ? 'all' : [generateForm.selectedMember];
+      await generateMonthlyBills(monthName, parseInt(generateForm.year), target, amount);
 
       toast({
         title: "Bills Generated",
@@ -92,6 +114,7 @@ export const BillManagement = () => {
       });
 
       setIsGenerateDialogOpen(false);
+      setGenerateForm({ month: (new Date().getMonth() + 1).toString(), year: new Date().getFullYear().toString(), amount: '2500', target: 'all', selectedMember: '' });
     } catch (error) {
       toast({
         title: "Error",
@@ -126,6 +149,78 @@ export const BillManagement = () => {
     }
   };
 
+  const markAsUnpaid = async (billId: string) => {
+    try {
+      await updateBill(billId, {
+        status: 'pending',
+        paidDate: null,
+        paymentMethod: null,
+        receiptNumber: null
+      });
+
+      toast({
+        title: "Bill Updated",
+        description: "Bill has been marked as unpaid.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update bill status.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const addLateFee = async (billId: string) => {
+    try {
+      // Get late fee from settings
+      const docRef = doc(db, 'settings', 'society');
+      const docSnap = await getDoc(docRef);
+      const lateFee = docSnap.exists() ? docSnap.data().lateFee || 0 : 0;
+
+      await updateBill(billId, {
+        lateFee: (await getDoc(doc(db, 'bills', billId))).data()?.lateFee || 0 + lateFee
+      });
+
+      toast({
+        title: "Late Fee Added",
+        description: `Late fee of ₹${lateFee} has been added to the bill.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add late fee.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const sendReminder = async (bill: Bill) => {
+    try {
+      const member = getMemberById(bill.memberId);
+      if (!member) return;
+
+      await addNotice({
+        title: `Payment Reminder: ${bill.month} ${bill.year}`,
+        message: `Dear ${member.fullName}, your maintenance bill of ₹${bill.amount + (bill.lateFee || 0)} for ${bill.month} ${bill.year} is due on ${bill.dueDate?.toDate().toLocaleDateString()}. Please pay on time to avoid late fees.`,
+        target: [member.id],
+        sentBy: 'admin',
+        sentAt: Timestamp.now()
+      });
+
+      toast({
+        title: "Reminder Sent",
+        description: `Payment reminder sent to ${member.fullName}.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send reminder.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'paid': return <CheckCircle className="w-4 h-4 text-success" />;
@@ -150,8 +245,8 @@ export const BillManagement = () => {
     paid: filteredBills.filter(b => b.status === 'paid').length,
     pending: filteredBills.filter(b => b.status === 'pending').length,
     overdue: filteredBills.filter(b => b.status === 'overdue').length,
-    totalAmount: filteredBills.reduce((sum, bill) => sum + bill.amount, 0),
-    collectedAmount: filteredBills.filter(b => b.status === 'paid').reduce((sum, bill) => sum + bill.amount, 0)
+    totalAmount: filteredBills.reduce((sum, bill) => sum + bill.amount + (bill.lateFee || 0), 0),
+    collectedAmount: filteredBills.filter(b => b.status === 'paid').reduce((sum, bill) => sum + bill.amount + (bill.lateFee || 0), 0)
   };
 
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 
@@ -206,6 +301,35 @@ export const BillManagement = () => {
                   />
                 </div>
               </div>
+              <div>
+                <Label htmlFor="target">Generate for</Label>
+                <Select value={generateForm.target} onValueChange={(value) => setGenerateForm({...generateForm, target: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Members</SelectItem>
+                    <SelectItem value="specific">Specific Member</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {generateForm.target === 'specific' && (
+                <div>
+                  <Label htmlFor="member">Select Member</Label>
+                  <Select value={generateForm.selectedMember} onValueChange={(value) => setGenerateForm({...generateForm, selectedMember: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a member" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {members.map((member) => (
+                        <SelectItem key={member.id} value={member.id}>
+                          {member.fullName} (Flat {member.flatNumber})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div>
                 <Label htmlFor="amount">Bill Amount (₹)</Label>
                 <Input
@@ -395,7 +519,10 @@ export const BillManagement = () => {
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
-                      <p className="font-bold text-xl">₹{bill.amount.toLocaleString()}</p>
+                      <p className="font-bold text-xl">₹{(bill.amount + (bill.lateFee || 0)).toLocaleString()}</p>
+                      {bill.lateFee && bill.lateFee > 0 && (
+                        <p className="text-xs text-orange-600">+₹{bill.lateFee} late fee</p>
+                      )}
                       {bill.receiptNumber && (
                         <p className="text-xs text-muted-foreground">{bill.receiptNumber}</p>
                       )}
@@ -410,9 +537,24 @@ export const BillManagement = () => {
                       </Button>
                     )}
                     {bill.status === 'paid' && (
-                      <Button size="sm" variant="outline">
-                        <Download className="w-4 h-4" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button size="sm" variant="outline">
+                          <Download className="w-4 h-4" />
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => markAsUnpaid(bill.id)}>
+                          Unpaid
+                        </Button>
+                      </div>
+                    )}
+                    {bill.status !== 'paid' && (
+                      <div className="flex gap-1">
+                        <Button size="sm" variant="outline" onClick={() => addLateFee(bill.id)}>
+                          +Late Fee
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => sendReminder(bill)}>
+                          Reminder
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>
