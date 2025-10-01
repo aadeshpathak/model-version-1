@@ -1,27 +1,34 @@
 # Society Management App Context
 
 ## Current Setup
-- **Tech Stack**: React (TypeScript), Vite, shadcn/ui, Tailwind CSS, Firebase (Auth + Firestore).
+- **Tech Stack**: React (TypeScript), Vite, shadcn/ui, Tailwind CSS, Firebase (Auth + Firestore), Framer Motion.
 - **Auth**: Firebase Email/Password. Role-based (admin/member) with approval workflow.
 - **Database**: Firestore with collections: users (role, approved, dismissed, bannedUntil, fullName, phone, flatNumber, lastLogin), bills (status, payment tracking), expenses, notices (target, readBy).
 - **Real-time**: onSnapshot for live data sync across all components with instant updates.
-- **Mobile Responsive**: Professional mobile-first design with sidebar-to-navbar conversion, hamburger menu, and touch-optimized interface.
-- **UI Enhancements**: Advanced animations, hover effects, gradient shifts, smooth transitions, and professional styling.
+- **Mobile Responsive**: Complete mobile-first refactoring with dedicated mobile components, bottom navigation, header with hamburger menu, neumorphism-style cards, and app-like UX.
+- **UI Enhancements**: Advanced animations, hover effects, gradient shifts, smooth transitions, professional styling, and mobile-optimized typography.
+- **Recent Updates**: Full mobile UI overhaul with separate mobile layouts, charts responsiveness, safe area padding, and touch-friendly interactions.
 - **Files Modified**:
-  - src/components/LoginForm.tsx: Dual-mode login ("Login" vs "Request to Join") with approval workflow.
-  - src/lib/firebase.ts: Firebase config.
+  - src/components/LoginForm.tsx: Dual-mode login ("Login" vs "Request to Join") with approval workflow and mobile variant.
+  - src/lib/firebase.ts: Firebase config with environment variables.
   - src/context/UserContext.tsx: Enhanced state management with real-time approval/dismissal tracking.
   - src/lib/firestoreServices.ts: Complete CRUD operations with real-time listeners.
   - src/components/admin/MembersManagement.tsx: Member management with approve/dismiss functionality.
-  - src/components/AdminDashboard.tsx: Reorganized dashboard with square action cards and live stats.
+  - src/components/AdminDashboard.tsx: Reorganized dashboard with square action cards, live stats, and mobile view.
   - src/components/admin/BillManagement.tsx: Bill generation and management (target removed, sends to all).
   - src/components/admin/ExpenseManagement.tsx: Real-time expense tracking and management.
+  - src/components/admin/SocietySettings.tsx: Admin settings with password update functionality.
   - src/components/Navigation.tsx: Responsive navigation (desktop sidebar + mobile bottom navbar + hamburger menu).
   - src/pages/Index.tsx: Main router with mobile-responsive layout and approval flow.
-  - src/components/MemberDashboard.tsx: Real data dashboard with payment processing and profile management.
+  - src/components/MemberDashboard.tsx: Real data dashboard with payment processing, profile management, and mobile view.
   - src/components/PendingApproval.tsx: Enhanced approval waiting page with real-time status updates.
+  - src/components/mobile/MobileLayout.tsx: Mobile app wrapper with safe area padding.
+  - src/components/mobile/MobileBottomNav.tsx: Bottom navigation for mobile with 5 tabs.
+  - src/components/mobile/MobileHeader.tsx: Top header with hamburger menu for mobile.
+  - src/components/ui/MobileCard.tsx: Neumorphism-style cards for mobile.
   - src/index.css: Custom CSS utilities for animations, mobile responsiveness, and enhanced styling.
-- **UI Features**: Mobile-responsive design, smooth animations, professional styling, no horizontal scroll, touch-friendly interface.
+  - src/App.css: Mobile-specific overflow-x hidden rules.
+- **UI Features**: Mobile-responsive design, smooth animations, professional styling, no horizontal scroll, touch-friendly interface, neumorphism cards, bottom navigation.
 
 ## What's Working
 - **Authentication**: Login as admin (admin@gmail.com / admin@1234) or member. New members use "Request to Join" with approval workflow.
@@ -87,5 +94,100 @@
 6. **Test Real-time Updates**: Notice instant updates when approval status changes.
 7. **Test Mobile Navigation**: On mobile, use bottom navbar and hamburger menu for navigation.
 
+## Installation Instructions for First-Time Setup
+
+If you're cloning this repository from GitHub for the first time, follow these steps to set up and run the application locally:
+
+### Prerequisites
+- **Node.js**: Version 18.0.0 or higher (recommended: 20.x LTS)
+  - Download from: https://nodejs.org/
+  - Verify installation: `node --version` and `npm --version`
+- **Git**: For cloning the repository
+  - Download from: https://git-scm.com/
+- **Code Editor**: VS Code recommended with TypeScript and React extensions
+
+### Step-by-Step Setup
+
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/aadeshpathak/pay-my-society.git
+   cd pay-my-society-main
+   ```
+
+2. **Install Dependencies**
+   ```bash
+   npm install
+   ```
+   This will install all required packages including React, Vite, Firebase, Tailwind CSS, shadcn/ui, Framer Motion, etc.
+
+3. **Set Up Firebase Project**
+   - Go to https://console.firebase.google.com/
+   - Create a new project (or use existing)
+   - Enable Authentication with Email/Password provider
+   - Enable Firestore Database
+   - Go to Project Settings > General > Your apps > Add Web App
+   - Copy the Firebase config object
+
+4. **Create Environment Variables**
+   - Create a `.env` file in the root directory
+   - Add your Firebase configuration:
+   ```env
+   VITE_FIREBASE_API_KEY=your_api_key_here
+   VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+   VITE_FIREBASE_PROJECT_ID=your_project_id
+   VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   VITE_FIREBASE_APP_ID=your_app_id
+   VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
+   ```
+
+5. **Set Up Firestore Security Rules**
+   - In Firebase Console > Firestore Database > Rules
+   - Replace with the content from `firestore.rules` in the project
+
+6. **Create Admin User**
+   - In Firebase Console > Authentication > Users
+   - Add user: admin@gmail.com with password: admin@1234
+   - In Firestore > users collection, add document with ID matching the admin's UID:
+   ```json
+   {
+     "email": "admin@gmail.com",
+     "role": "admin",
+     "approved": true,
+     "dismissed": false,
+     "createdAt": "current_timestamp"
+   }
+   ```
+
+7. **Start Development Server**
+   ```bash
+   npm run dev
+   ```
+   - Server will start on http://localhost:5173 (default Vite port)
+   - Open in browser and test with admin@gmail.com / admin@1234
+
+### Troubleshooting Common Issues
+
+- **Port 5173 already in use**: Change port with `npm run dev -- --port 3000`
+- **Firebase connection errors**: Check .env file and Firebase project settings
+- **Build errors**: Ensure Node.js version is 18+ and run `npm install` again
+- **TypeScript errors**: Install VS Code TypeScript extension
+- **Mobile testing**: Use browser dev tools or ngrok for mobile device testing
+
+### Required Dependencies (Auto-installed via npm install)
+- React 18.3.1
+- TypeScript 5.8.3
+- Vite 5.4.19
+- Firebase 12.3.0
+- Tailwind CSS 3.4.17
+- shadcn/ui components
+- Framer Motion 12.23.22
+- Lucide React icons
+- React Router DOM 6.30.1
+- React Hook Form 7.61.1
+- TanStack Query 5.83.0
+- Recharts 2.15.4
+- Chart.js 4.5.0
+
 ## Current Status
-The app is fully functional with professional UI/UX, mobile responsiveness, real-time updates, and complete approval workflow. All syntax errors have been resolved and the development server is running successfully on http://localhost:8081. All major features are implemented and tested. For payment gateway integration (Razorpay), provide API keys when ready.
+The app is fully functional with professional UI/UX, complete mobile refactoring, real-time updates, and complete approval workflow. All syntax errors have been resolved and the development server runs successfully. Desktop views remain unchanged while mobile has been completely redesigned with modern app-like interface. For payment gateway integration (Razorpay), provide API keys when ready.
