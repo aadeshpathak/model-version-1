@@ -1,19 +1,22 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, FileText, CreditCard, Bell, Menu, User, Settings, LogOut } from 'lucide-react';
+import { Home, FileText, CreditCard, Bell, Menu, User, Settings, Users, BarChart3, Building2, X, LogOut } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
 
 const MobileBottomNav: React.FC = () => {
   const { currentView, setCurrentView, currentUser, handleLogout } = useUser();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const getNavItems = () => {
     if (currentUser === 'admin') {
       return [
         { id: 'dashboard', label: 'Home', icon: Home },
+        { id: 'members', label: 'Members', icon: Users },
         { id: 'bills', label: 'Bills', icon: FileText },
         { id: 'expenses', label: 'Expenses', icon: CreditCard },
+        { id: 'reports', label: 'Reports', icon: BarChart3 },
         { id: 'notices', label: 'Notices', icon: Bell },
+        { id: 'settings', label: 'Settings', icon: Settings },
       ];
     } else {
       return [
@@ -21,36 +24,40 @@ const MobileBottomNav: React.FC = () => {
         { id: 'myBills', label: 'Bills', icon: FileText },
         { id: 'payments', label: 'Payments', icon: CreditCard },
         { id: 'notices', label: 'Notices', icon: Bell },
+        { id: 'profile', label: 'Profile', icon: User },
       ];
     }
   };
 
   const navItems = getNavItems();
+  const mainNavItems = navItems.slice(0, 4); // First 4 items in bottom nav
+  const drawerItems = navItems.slice(4); // Remaining items in drawer
 
-  const menuItems = [
-    { icon: User, label: 'Profile', action: () => { setCurrentView('profile'); setIsMenuOpen(false); } },
-    { icon: Settings, label: 'Settings', action: () => { setCurrentView('settings'); setIsMenuOpen(false); } },
-    { icon: LogOut, label: 'Logout', action: () => { handleLogout(); setIsMenuOpen(false); } },
-  ];
+  const handleNavClick = (itemId: string) => {
+    setCurrentView(itemId);
+    setIsDrawerOpen(false); // Close drawer when navigating
+  };
 
   return (
     <>
       <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-gray-200 rounded-t-3xl shadow-2xl z-50"
+        className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-gray-200/50 shadow-2xl z-50"
         role="tablist"
         aria-label="Main navigation"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        <div className="flex justify-around items-center h-16 px-2">
-          {navItems.map((item) => {
+        <div className="flex justify-around items-center h-16 px-2 relative">
+          {mainNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentView === item.id;
             return (
               <motion.button
                 key={item.id}
-                onClick={() => setCurrentView(item.id)}
-                className={`flex flex-col items-center justify-center p-2 rounded-xl transition-colors min-h-[44px] min-w-[44px] ${
-                  isActive ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                onClick={() => handleNavClick(item.id)}
+                className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-h-[44px] min-w-[44px] ${
+                  isActive
+                    ? 'text-blue-600 bg-blue-50'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
                 whileTap={{ scale: 0.95 }}
                 aria-label={item.label}
@@ -59,55 +66,161 @@ const MobileBottomNav: React.FC = () => {
               >
                 <Icon size={22} className="mb-1" />
                 <span className="text-xs font-medium">{item.label}</span>
+                {isActive && (
+                  <motion.div
+                    className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-6 h-1 bg-blue-600 rounded-full"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  />
+                )}
               </motion.button>
             );
           })}
+
+          {/* Hamburger Menu Button */}
           <motion.button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className={`flex flex-col items-center justify-center p-2 rounded-xl transition-colors min-h-[44px] min-w-[44px] ${
-              isMenuOpen ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-            }`}
+            onClick={() => setIsDrawerOpen(true)}
+            className="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-h-[44px] min-w-[44px] text-gray-600 hover:text-gray-900 hover:bg-gray-50"
             whileTap={{ scale: 0.95 }}
-            aria-label="Menu"
+            aria-label="More options"
           >
             <Menu size={22} className="mb-1" />
-            <span className="text-xs font-medium">Menu</span>
+            <span className="text-xs font-medium">More</span>
           </motion.button>
         </div>
       </nav>
 
+      {/* Animated Drawer */}
       <AnimatePresence>
-        {isMenuOpen && (
+        {isDrawerOpen && (
           <>
+            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/30 z-40"
-              onClick={() => setIsMenuOpen(false)}
+              className="fixed inset-0 bg-black/50 z-[60] backdrop-blur-sm"
+              onClick={() => setIsDrawerOpen(false)}
             />
+
+            {/* Drawer */}
             <motion.div
-              initial={{ y: '-100%' }}
+              initial={{ y: '100%' }}
               animate={{ y: 0 }}
-              exit={{ y: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed bottom-16 left-4 right-4 bg-white rounded-2xl shadow-2xl z-50 p-4"
+              exit={{ y: '100%' }}
+              transition={{
+                type: 'spring',
+                stiffness: 300,
+                damping: 30,
+                mass: 0.8
+              }}
+              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl z-[70] max-h-[70vh] overflow-hidden"
+              style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
             >
-              <div className="space-y-2">
-                {menuItems.map((item, index) => {
-                  const Icon = item.icon;
-                  return (
+              {/* Drawer Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center">
+                    <Building2 className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Menu</h3>
+                    <p className="text-sm text-gray-500">More options</p>
+                  </div>
+                </div>
+                <motion.button
+                  onClick={() => setIsDrawerOpen(false)}
+                  className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
+                  whileTap={{ scale: 0.95 }}
+                  aria-label="Close menu"
+                >
+                  <X size={20} className="text-gray-500" />
+                </motion.button>
+              </div>
+
+              {/* Drawer Content */}
+              <div className="p-4">
+                <div className="space-y-2">
+                  {drawerItems.map((item, index) => {
+                    const Icon = item.icon;
+                    const isActive = currentView === item.id;
+                    return (
+                      <motion.button
+                        key={item.id}
+                        onClick={() => handleNavClick(item.id)}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 ${
+                          isActive
+                            ? 'bg-blue-50 border border-blue-200'
+                            : 'hover:bg-gray-50'
+                        }`}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <div className={`p-2 rounded-xl ${
+                          isActive ? 'bg-blue-100' : 'bg-gray-100'
+                        }`}>
+                          <Icon size={20} className={isActive ? 'text-blue-600' : 'text-gray-600'} />
+                        </div>
+                        <div className="flex-1 text-left">
+                          <span className={`font-medium ${isActive ? 'text-blue-900' : 'text-gray-900'}`}>
+                            {item.label}
+                          </span>
+                        </div>
+                        {isActive && (
+                          <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                        )}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+
+                {/* Quick Actions */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="mt-6 pt-4 border-t border-gray-100"
+                >
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Quick Actions</h4>
+                  <div className="grid grid-cols-3 gap-3">
                     <motion.button
-                      key={index}
-                      onClick={item.action}
-                      className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors"
-                      whileTap={{ scale: 0.98 }}
+                      className="flex flex-col items-center gap-2 p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border border-green-200 hover:shadow-md transition-all"
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        setCurrentView('dashboard');
+                        setIsDrawerOpen(false);
+                      }}
                     >
-                      <Icon size={20} className="text-gray-600" />
-                      <span className="text-gray-900 font-medium">{item.label}</span>
+                      <Home size={20} className="text-green-600" />
+                      <span className="text-xs font-medium text-green-900">Dashboard</span>
                     </motion.button>
-                  );
-                })}
+                    <motion.button
+                      className="flex flex-col items-center gap-2 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-200 hover:shadow-md transition-all"
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        setCurrentView('settings');
+                        setIsDrawerOpen(false);
+                      }}
+                    >
+                      <Settings size={20} className="text-blue-600" />
+                      <span className="text-xs font-medium text-blue-900">Settings</span>
+                    </motion.button>
+                    <motion.button
+                      className="flex flex-col items-center gap-2 p-4 bg-gradient-to-br from-red-50 to-pink-50 rounded-2xl border border-red-200 hover:shadow-md transition-all"
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        handleLogout();
+                        setIsDrawerOpen(false);
+                      }}
+                    >
+                      <LogOut size={20} className="text-red-600" />
+                      <span className="text-xs font-medium text-red-900">Logout</span>
+                    </motion.button>
+                  </div>
+                </motion.div>
               </div>
             </motion.div>
           </>

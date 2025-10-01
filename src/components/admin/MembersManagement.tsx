@@ -419,6 +419,13 @@ export const MembersManagement = () => {
                           >
                             <X size={16} />
                           </motion.button>
+                          <motion.button
+                            className="p-2 bg-red-500 text-white rounded-lg"
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => handleDelete(member.id)}
+                          >
+                            <Trash2 size={16} />
+                          </motion.button>
                         </div>
                       </div>
                     </MobileCard>

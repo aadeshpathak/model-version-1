@@ -25,6 +25,8 @@ import {
 } from 'lucide-react';
 import { getAllExpenses, addExpense, type Expense } from '@/lib/firestoreServices';
 import { useToast } from '@/hooks/use-toast';
+import MobileCard from '@/components/ui/MobileCard';
+import { motion } from 'framer-motion';
 
 const expenseCategories = [
   { value: 'electricity', label: 'Electricity', icon: Zap, color: 'bg-yellow-500' },
@@ -180,8 +182,253 @@ export const ExpenseManagement = () => {
     return found ? found.color : 'bg-gray-400';
   };
 
+  // Mobile View
   return (
-    <div className="space-y-6">
+    <>
+      {/* Mobile View */}
+      <div className="md:hidden min-h-screen bg-white overflow-x-hidden">
+        <motion.div
+          className="bg-white shadow-sm p-6 border-b"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <h1 className="text-xl font-bold text-gray-900">Expenses</h1>
+          <p className="text-sm text-gray-600">Track society expenses</p>
+        </motion.div>
+
+        <div className="p-4 space-y-6 pb-24">
+          {/* Stats Cards */}
+          <motion.div
+            className="grid grid-cols-2 gap-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.1, duration: 0.4 }}
+          >
+            <MobileCard className="text-center">
+              <div className="text-2xl font-bold text-red-600">₹{stats.total.toLocaleString()}</div>
+              <div className="text-xs text-gray-600 mt-1">Total Expenses</div>
+            </MobileCard>
+            <MobileCard className="text-center">
+              <div className="text-2xl font-bold text-orange-600">₹{stats.currentMonth.toLocaleString()}</div>
+              <div className="text-xs text-gray-600 mt-1">This Month</div>
+            </MobileCard>
+            <MobileCard className="text-center">
+              <div className="text-2xl font-bold text-blue-600">{stats.count}</div>
+              <div className="text-xs text-gray-600 mt-1">Total Count</div>
+            </MobileCard>
+            <MobileCard className="text-center">
+              <div className={`text-2xl font-bold ${monthlyChange >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                {monthlyChange >= 0 ? '+' : ''}{monthlyChange.toFixed(1)}%
+              </div>
+              <div className="text-xs text-gray-600 mt-1">Monthly Change</div>
+            </MobileCard>
+          </motion.div>
+
+          {/* Add Expense Button */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+          >
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="w-full bg-orange-500 text-white py-3 rounded-2xl font-medium">
+                  <Plus className="w-5 h-5 mr-2" />
+                  Add Expense
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md mx-4">
+                <DialogHeader>
+                  <DialogTitle>Add New Expense</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <Label htmlFor="category">Category</Label>
+                    <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {expenseCategories.map(category => (
+                          <SelectItem key={category.value} value={category.value}>
+                            {category.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => setFormData({...formData, description: e.target.value})}
+                      placeholder="Enter expense description"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="amount">Amount (₹)</Label>
+                    <Input
+                      id="amount"
+                      type="number"
+                      value={formData.amount}
+                      onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                      placeholder="Enter amount"
+                      min="0"
+                      step="0.01"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="month">Month</Label>
+                      <Select value={formData.month} onValueChange={(value) => setFormData({...formData, month: value})}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {months.map(month => (
+                            <SelectItem key={month} value={month}>{month}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="year">Year</Label>
+                      <Input
+                        id="year"
+                        type="number"
+                        value={formData.year}
+                        onChange={(e) => setFormData({...formData, year: e.target.value})}
+                        min="2020"
+                        max="2030"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="vendor">Vendor/Payee</Label>
+                    <Input
+                      id="vendor"
+                      value={formData.vendor}
+                      onChange={(e) => setFormData({...formData, vendor: e.target.value})}
+                      placeholder="Enter vendor name"
+                      required
+                    />
+                  </div>
+                  <div className="flex gap-2 pt-4">
+                    <Button type="submit" className="flex-1 bg-orange-600 hover:bg-orange-700 text-white">
+                      Add Expense
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </motion.div>
+
+          {/* Search and Filters */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.4 }}
+          >
+            <div className="space-y-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  placeholder="Search expenses..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {expenseCategories.map(category => (
+                      <SelectItem key={category.value} value={category.value}>
+                        {category.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={monthFilter} onValueChange={setMonthFilter}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Months</SelectItem>
+                    {months.map(month => (
+                      <SelectItem key={month} value={month}>{month}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Expenses List */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.4 }}
+          >
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">Expenses ({filteredExpenses.length})</h2>
+            <div className="max-h-96 overflow-y-auto space-y-3">
+              {filteredExpenses.map((expense, index) => {
+                const IconComponent = getCategoryIcon(expense.category);
+                return (
+                  <motion.div
+                    key={expense.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.5 + index * 0.05, duration: 0.3 }}
+                  >
+                    <MobileCard>
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-start gap-3 flex-1">
+                          <div className={`w-10 h-10 ${getCategoryColor(expense.category)} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                            <IconComponent className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-sm truncate">{expense.description}</h3>
+                            <p className="text-xs text-gray-600 truncate">{expense.vendor}</p>
+                            <p className="text-xs text-gray-600">{expense.month} {expense.year}</p>
+                            <Badge variant="outline" className="text-xs mt-1 capitalize">
+                              {expense.category}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="text-right ml-2">
+                          <p className="font-bold text-lg text-red-600">-₹{expense.amount.toLocaleString()}</p>
+                        </div>
+                      </div>
+                    </MobileCard>
+                  </motion.div>
+                );
+              })}
+            </div>
+            {filteredExpenses.length === 0 && (
+              <div className="text-center py-8">
+                <Receipt className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-500">No expenses found</p>
+              </div>
+            )}
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Desktop View */}
+      <div className="hidden md:block">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -464,5 +711,7 @@ export const ExpenseManagement = () => {
         )}
       </Card>
     </div>
+  );
+    </>
   );
 };

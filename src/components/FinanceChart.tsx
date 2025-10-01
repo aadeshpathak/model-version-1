@@ -20,7 +20,12 @@ ChartJS.register(
   Legend
 );
 
-export const FinanceChart = () => {
+interface FinanceChartProps {
+  visualizationType?: string;
+  selectedMonth?: string;
+}
+
+export const FinanceChart = ({ visualizationType = 'overview', selectedMonth = 'all' }: FinanceChartProps) => {
   const [chartData, setChartData] = useState({
     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
     datasets: [
@@ -56,9 +61,49 @@ export const FinanceChart = () => {
       incomeData[currentMonth] = stats.totalCollection || 0;
       expenseData[currentMonth] = stats.totalExpenses || 0;
 
-      setChartData({
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-        datasets: [
+      let datasets = [];
+      let labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+      // Filter based on selectedMonth
+      if (selectedMonth !== 'all') {
+        const monthIndex = labels.indexOf(selectedMonth);
+        if (monthIndex !== -1) {
+          labels = [selectedMonth];
+          incomeData.splice(0, monthIndex);
+          incomeData.splice(1);
+          expenseData.splice(0, monthIndex);
+          expenseData.splice(1);
+        }
+      }
+
+      // Filter based on visualizationType
+      if (visualizationType === 'revenue') {
+        datasets = [
+          {
+            label: 'Income',
+            data: incomeData,
+            backgroundColor: 'hsl(212 100% 50% / 0.8)',
+            borderColor: 'hsl(212 100% 50%)',
+            borderWidth: 2,
+            borderRadius: 8,
+            borderSkipped: false,
+          },
+        ];
+      } else if (visualizationType === 'expenses') {
+        datasets = [
+          {
+            label: 'Expenses',
+            data: expenseData,
+            backgroundColor: 'hsl(38 92% 50% / 0.8)',
+            borderColor: 'hsl(38 92% 50%)',
+            borderWidth: 2,
+            borderRadius: 8,
+            borderSkipped: false,
+          },
+        ];
+      } else {
+        // overview, visualizations, insight - show both
+        datasets = [
           {
             label: 'Income',
             data: incomeData,
@@ -77,12 +122,17 @@ export const FinanceChart = () => {
             borderRadius: 8,
             borderSkipped: false,
           },
-        ],
+        ];
+      }
+
+      setChartData({
+        labels,
+        datasets,
       });
     });
 
     return unsubscribe;
-  }, []);
+  }, [visualizationType, selectedMonth]);
 
   const data = chartData;
 

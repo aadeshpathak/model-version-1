@@ -2,34 +2,68 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Users, IndianRupee, TrendingUp, AlertTriangle, CheckCircle2, Clock, Plus, Eye, ArrowRight, Building2, Wallet, Bell, Activity, BarChart3, PieChart, Settings, FileText } from 'lucide-react';
+import { Users, IndianRupee, TrendingUp, AlertTriangle, CheckCircle2, Clock, Plus, Eye, ArrowRight, Building2, Wallet, Bell, Activity, BarChart3, PieChart, Settings, FileText, Trash2, MoreVertical } from 'lucide-react';
 import { FinanceChart } from './FinanceChart';
 import { useEffect, useState } from 'react';
-import { getSocietyStats, getRecentPayments, getOverdueMembers, generateMonthlyBills, addExpense, addNotice, getMembers, getRecentBills, getRecentExpenses, deleteBill } from '@/lib/firestoreServices';
+import { motion } from 'framer-motion';
+import { getSocietyStats, getRecentPayments, getOverdueMembers, generateMonthlyBills, addExpense, addNotice, getMembers, getRecentBills, getRecentExpenses, deleteBill, getAllNotices } from '@/lib/firestoreServices';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { Timestamp } from 'firebase/firestore';
 import { useSocietySettings } from '@/hooks/use-society-settings';
+import { useUser } from '@/context/UserContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import MobileCard from '@/components/ui/MobileCard';
 
 export const AdminDashboard = () => {
   const { toast } = useToast();
   const { settings: societySettings } = useSocietySettings();
+  const { setCurrentView } = useUser();
   const [stats, setStats] = useState(null);
   const [recentPayments, setRecentPayments] = useState([]);
   const [overdueMembers, setOverdueMembers] = useState([]);
   const [recentExpenses, setRecentExpenses] = useState([]);
   const [recentBills, setRecentBills] = useState([]);
   const [approvedMembers, setApprovedMembers] = useState([]);
+  const [notices, setNotices] = useState([]);
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
   const [isBillDialogOpen, setIsBillDialogOpen] = useState(false);
   const [isNoticeDialogOpen, setIsNoticeDialogOpen] = useState(false);
   const [expenseForm, setExpenseForm] = useState({ amount: '', category: '', vendor: '', month: '', year: '', target: 'all', selectedMembers: [] as string[] });
   const [billForm, setBillForm] = useState({ month: '', year: '', amount: '2500' });
   const [noticeForm, setNoticeForm] = useState({ title: '', message: '', target: 'all', selectedMembers: [] as string[] });
+  const [settingsForm, setSettingsForm] = useState({
+    societyName: societySettings.societyName || '',
+    maintenanceFee: societySettings.maintenanceFee || 2500,
+    lateFee: societySettings.lateFee || 100,
+    dueDay: societySettings.dueDay || 15
+  });
+  const [selectedVisualization, setSelectedVisualization] = useState('overview');
+  const [selectedMonth, setSelectedMonth] = useState('all');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [billToDelete, setBillToDelete] = useState(null);
+
+  const handleSaveSettings = async () => {
+    try {
+      await setDoc(doc(db, 'settings', 'society'), {
+        ...settingsForm,
+        emailNotifications: societySettings.emailNotifications,
+        smsNotifications: societySettings.smsNotifications,
+        paymentGateway: societySettings.paymentGateway,
+        address: societySettings.address
+      });
+      toast({ title: "Settings Saved", description: "Society settings have been updated successfully." });
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to save settings.", variant: "destructive" });
+    }
+  };
 
   useEffect(() => {
     loadData();
@@ -43,10 +77,12 @@ export const AdminDashboard = () => {
     });
     const unsubscribeBills = getRecentBills(setRecentBills);
     const unsubscribeExpenses = getRecentExpenses(setRecentExpenses);
+    const unsubscribeNotices = getAllNotices(setNotices);
     return () => {
       unsubscribeMembers();
       unsubscribeBills();
       unsubscribeExpenses();
+      unsubscribeNotices();
     };
   }, []);
 
@@ -110,8 +146,599 @@ export const AdminDashboard = () => {
     }
   };
 
+  // Mobile Dashboard - Modern App Design with Tabs
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 w-full overflow-x-hidden">
+    <>
+      {/* Mobile Dashboard */}
+      <div className="md:hidden min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+        <Tabs defaultValue="dashboard" className="w-full">
+          <TabsList className="grid w-full grid-cols-6 sticky top-16 z-10 bg-white/80 backdrop-blur-md border-b border-gray-200 rounded-none h-12">
+            <TabsTrigger value="dashboard" className="text-xs">Home</TabsTrigger>
+            <TabsTrigger value="bills" className="text-xs">Bills</TabsTrigger>
+            <TabsTrigger value="expenses" className="text-xs">Expenses</TabsTrigger>
+            <TabsTrigger value="reports" className="text-xs">Reports</TabsTrigger>
+            <TabsTrigger value="notices" className="text-xs">Notices</TabsTrigger>
+            <TabsTrigger value="settings" className="text-xs">Settings</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="dashboard" className="mt-0">
+            {/* Hero Header */}
+            <motion.div
+              className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 px-6 pt-12 pb-8 rounded-b-3xl shadow-2xl"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="absolute inset-0 bg-black/10"></div>
+              <div className="absolute -top-20 -right-20 w-40 h-40 bg-white/10 rounded-full blur-2xl animate-pulse"></div>
+              <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-white/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
+
+              <div className="relative z-10">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-lg">
+                    <Building2 className="w-7 h-7 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-2xl font-bold text-white mb-1">Admin Dashboard</h1>
+                    <p className="text-indigo-100 text-sm">{societySettings.societyName || 'Society'} Management</p>
+                  </div>
+                </div>
+
+                {/* Key Stats */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-4 text-white">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-xl flex items-center justify-center">
+                        <Users className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-white/80 text-sm">Active Members</p>
+                        <p className="text-xl font-bold">{stats?.activeMembers || 0}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-4 text-white">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center">
+                        <IndianRupee className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-white/80 text-sm">Monthly Revenue</p>
+                        <p className="text-xl font-bold">₹{(stats ? (stats.totalCollection / 1000).toFixed(0) : 0)}K</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Main Content */}
+            <div className="px-6 pb-24 pt-6 space-y-6">
+              {/* Quick Actions */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+              >
+                <h2 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h2>
+                <div className="grid grid-cols-2 gap-4">
+                  <motion.button
+                    className="bg-gradient-to-br from-blue-500 to-purple-600 text-white p-6 rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300"
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setIsBillDialogOpen(true)}
+                  >
+                    <Plus className="w-6 h-6 mb-2 mx-auto" />
+                    <div className="text-sm font-semibold">Generate Bills</div>
+                  </motion.button>
+
+                  <motion.button
+                    className="bg-gradient-to-br from-orange-500 to-red-500 text-white p-6 rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300"
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setIsExpenseDialogOpen(true)}
+                  >
+                    <Wallet className="w-6 h-6 mb-2 mx-auto" />
+                    <div className="text-sm font-semibold">Add Expense</div>
+                  </motion.button>
+
+                  <motion.button
+                    className="bg-gradient-to-br from-green-500 to-teal-500 text-white p-6 rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300"
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setIsNoticeDialogOpen(true)}
+                  >
+                    <Bell className="w-6 h-6 mb-2 mx-auto" />
+                    <div className="text-sm font-semibold">Send Notice</div>
+                  </motion.button>
+
+                  <motion.button
+                    className="bg-gradient-to-br from-purple-500 to-pink-500 text-white p-6 rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300"
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setCurrentView('reports')}
+                  >
+                    <BarChart3 className="w-6 h-6 mb-2 mx-auto" />
+                    <div className="text-sm font-semibold">View Reports</div>
+                  </motion.button>
+                </div>
+              </motion.div>
+
+              {/* Stats Overview */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.5 }}
+              >
+                <h2 className="text-lg font-bold text-gray-900 mb-4">Overview</h2>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-3xl border border-blue-100">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-2xl flex items-center justify-center">
+                        <Users className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-blue-700 font-medium">Total Members</p>
+                        <p className="text-2xl font-bold text-blue-900">{stats?.activeMembers || 0}</p>
+                      </div>
+                    </div>
+                    <div className="text-xs text-blue-600">Active members in society</div>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-3xl border border-green-100">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center">
+                        <IndianRupee className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-green-700 font-medium">Monthly Collection</p>
+                        <p className="text-2xl font-bold text-green-900">₹{(stats ? (stats.totalCollection / 1000).toFixed(0) : 0)}K</p>
+                      </div>
+                    </div>
+                    <div className="text-xs text-green-600">{stats?.collectionRate || 0}% collection rate</div>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-yellow-50 to-orange-50 p-6 rounded-3xl border border-yellow-100">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-2xl flex items-center justify-center">
+                        <Wallet className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-orange-700 font-medium">Total Expenses</p>
+                        <p className="text-2xl font-bold text-orange-900">₹{(stats ? (stats.totalExpenses / 1000).toFixed(0) : 0)}K</p>
+                      </div>
+                    </div>
+                    <div className="text-xs text-orange-600">This month's expenses</div>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-6 rounded-3xl border border-purple-100">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center">
+                        <TrendingUp className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-purple-700 font-medium">Net Balance</p>
+                        <p className="text-2xl font-bold text-purple-900">₹{(stats ? (stats.netBalance / 1000).toFixed(0) : 0)}K</p>
+                      </div>
+                    </div>
+                    <div className={`text-xs ${stats?.netBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {stats?.netBalance >= 0 ? 'Positive balance' : 'Negative balance'}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Recent Activity */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4, duration: 0.5 }}
+              >
+                <h2 className="text-lg font-bold text-gray-900 mb-4">Recent Activity</h2>
+                <div className="space-y-3">
+                  {recentBills.slice(0, 3).map((bill, index) => (
+                    <motion.div
+                      key={bill.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.5 + index * 0.1, duration: 0.4 }}
+                      className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center">
+                          <FileText className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-900">{bill.month} {bill.year} Bills</p>
+                          <p className="text-sm text-gray-600">₹{bill.amount?.toLocaleString()} • {bill.target === 'all' ? 'All Members' : 'Specific'}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-gray-500">{bill.createdAt?.toDate().toLocaleDateString()}</p>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <motion.button
+                                className="p-1 rounded-lg hover:bg-gray-50 text-gray-500 hover:text-gray-700 transition-colors"
+                                whileTap={{ scale: 0.9 }}
+                                aria-label="More options"
+                              >
+                                <MoreVertical size={16} />
+                              </motion.button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuItem
+                                onClick={async () => {
+                                  if (window.confirm('Delete this bill permanently? This will remove it from all member dashboards.')) {
+                                    try {
+                                      await deleteBill(bill.id);
+                                      toast({ title: "Bill Deleted", description: "Bill has been removed from all member dashboards." });
+                                    } catch (error) {
+                                      toast({ title: "Error", description: "Failed to delete bill.", variant: "destructive" });
+                                    }
+                                  }
+                                }}
+                                className="text-red-600"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Delete Bill
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+
+                  {recentExpenses.slice(0, 2).map((expense, index) => (
+                    <motion.div
+                      key={expense.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.7 + index * 0.1, duration: 0.4 }}
+                      className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-orange-500 rounded-xl flex items-center justify-center">
+                          <Wallet className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-900">{expense.category}</p>
+                          <p className="text-sm text-gray-600">{expense.vendor} • ₹{expense.amount.toLocaleString()}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500">{expense.month} {expense.year}</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+
+              {/* Overdue Payments Alert */}
+              {overdueMembers.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.6, duration: 0.4 }}
+                  className="bg-gradient-to-r from-red-50 to-orange-50 p-6 rounded-3xl border border-red-200"
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-orange-500 rounded-2xl flex items-center justify-center">
+                      <AlertTriangle className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-red-900">Payment Reminders Needed</h3>
+                      <p className="text-sm text-red-700">{overdueMembers.length} members have overdue payments</p>
+                    </div>
+                  </div>
+                  <motion.button
+                    className="w-full bg-gradient-to-r from-red-500 to-orange-500 text-white py-3 rounded-2xl font-semibold shadow-lg"
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      overdueMembers.forEach(async (item) => {
+                        try {
+                          const overdueAmount = item.bills.reduce((sum, b) => sum + b.amount, 0);
+                          await addNotice({
+                            title: 'Payment Reminder',
+                            message: `Dear ${item.member.fullName},\n\nThis is a reminder that you have ${item.bills.length} overdue bill(s) totaling ₹${overdueAmount.toLocaleString()}. Please make the payment at your earliest convenience.\n\nThank you,\n${societySettings.societyName || 'Society'} Management`,
+                            target: [item.member.id],
+                            sentBy: 'admin',
+                            sentAt: Timestamp.now()
+                          });
+                        } catch (error) {
+                          console.error('Notice send error:', error);
+                        }
+                      });
+                      toast({ title: "Reminders Sent", description: `Payment reminders sent to ${overdueMembers.length} members.` });
+                    }}
+                  >
+                    Send Payment Reminders
+                  </motion.button>
+                </motion.div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="bills" className="mt-0 px-6 pb-24 pt-6">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">Bill Management</h2>
+                <Button onClick={() => setIsBillDialogOpen(true)} size="sm">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Generate Bills
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                {recentBills.length > 0 ? recentBills.map((bill) => (
+                  <MobileCard key={bill.id}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center">
+                        <FileText className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900">{bill.month} {bill.year} Bills</p>
+                        <p className="text-sm text-gray-600">₹{bill.amount?.toLocaleString()} • {bill.target === 'all' ? 'All Members' : 'Specific'}</p>
+                        <p className="text-xs text-gray-500">{bill.createdAt?.toDate().toLocaleDateString()}</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setBillToDelete(bill);
+                          setDeleteDialogOpen(true);
+                        }}
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </MobileCard>
+                )) : (
+                  <div className="text-center py-12">
+                    <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-700 mb-2">No Bills Generated</h3>
+                    <p className="text-gray-500">Generate your first bill to see it here</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="expenses" className="mt-0 px-6 pb-24 pt-6">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">Expense Management</h2>
+                <Button onClick={() => setIsExpenseDialogOpen(true)} size="sm">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Expense
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                {recentExpenses.length > 0 ? recentExpenses.map((expense) => (
+                  <MobileCard key={expense.id}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-orange-500 rounded-xl flex items-center justify-center">
+                        <Wallet className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900">{expense.category}</p>
+                        <p className="text-sm text-gray-600">{expense.vendor}</p>
+                        <p className="text-xs text-gray-500">{expense.month} {expense.year}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-red-600">₹{expense.amount.toLocaleString()}</p>
+                      </div>
+                    </div>
+                  </MobileCard>
+                )) : (
+                  <div className="text-center py-12">
+                    <Wallet className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-700 mb-2">No Expenses Recorded</h3>
+                    <p className="text-gray-500">Add your first expense to track spending</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="reports" className="mt-0 px-6 pb-24 pt-6">
+            <div className="space-y-6">
+              <h2 className="text-xl font-bold text-gray-900">Reports & Visualizations</h2>
+
+              <div className="space-y-4">
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <Label>Visualization Type</Label>
+                    <Select value={selectedVisualization} onValueChange={setSelectedVisualization}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="overview">Overview</SelectItem>
+                        <SelectItem value="visualizations">Visualizations</SelectItem>
+                        <SelectItem value="revenue">Revenue</SelectItem>
+                        <SelectItem value="expenses">Expenses</SelectItem>
+                        <SelectItem value="insight">Insight</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex-1">
+                    <Label>Month</Label>
+                    <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Months</SelectItem>
+                        <SelectItem value="January">January</SelectItem>
+                        <SelectItem value="February">February</SelectItem>
+                        <SelectItem value="March">March</SelectItem>
+                        <SelectItem value="April">April</SelectItem>
+                        <SelectItem value="May">May</SelectItem>
+                        <SelectItem value="June">June</SelectItem>
+                        <SelectItem value="July">July</SelectItem>
+                        <SelectItem value="August">August</SelectItem>
+                        <SelectItem value="September">September</SelectItem>
+                        <SelectItem value="October">October</SelectItem>
+                        <SelectItem value="November">November</SelectItem>
+                        <SelectItem value="December">December</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                  <FinanceChart visualizationType={selectedVisualization} selectedMonth={selectedMonth} />
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="notices" className="mt-0 px-6 pb-24 pt-6">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">Notice Management</h2>
+                <Button onClick={() => setIsNoticeDialogOpen(true)} size="sm">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Send Notice
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                {notices.length > 0 ? notices.slice(0, 10).map((notice) => (
+                  <MobileCard key={notice.id}>
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                          <Bell className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-gray-900 text-base leading-tight">{notice.title}</h3>
+                          <p className="text-sm text-gray-600 mt-1 line-clamp-2">{notice.message}</p>
+                          <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+                            <span>{notice.sentAt?.toDate().toLocaleDateString()}</span>
+                            <span>•</span>
+                            <span>Read by {notice.readBy?.length || 0}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </MobileCard>
+                )) : (
+                  <MobileCard>
+                    <div className="text-center py-8">
+                      <Bell className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-700 mb-2">No Notices Sent</h3>
+                      <p className="text-gray-500 text-sm">Send your first notice to keep members informed</p>
+                    </div>
+                  </MobileCard>
+                )}
+              </div>
+
+              {/* Delete Bill Dialog */}
+              <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent className="max-w-sm z-[1000]">
+                  <DialogHeader>
+                    <DialogTitle>Delete Bill</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Are you sure you want to delete the bill for {billToDelete?.month} {billToDelete?.year}? This will remove it from all member dashboards.
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => setDeleteDialogOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        className="flex-1"
+                        onClick={async () => {
+                          if (billToDelete) {
+                            try {
+                              await deleteBill(billToDelete.id);
+                              toast({ title: "Bill Deleted", description: "Bill has been removed from all member dashboards." });
+                              setDeleteDialogOpen(false);
+                              setBillToDelete(null);
+                            } catch (error) {
+                              toast({ title: "Error", description: "Failed to delete bill.", variant: "destructive" });
+                            }
+                          }
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="settings" className="mt-0 px-6 pb-24 pt-6">
+            <div className="space-y-6">
+              <h2 className="text-xl font-bold text-gray-900">Society Settings</h2>
+
+              <MobileCard>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="societyName">Society Name</Label>
+                    <Input
+                      id="societyName"
+                      value={settingsForm.societyName}
+                      onChange={(e) => setSettingsForm({...settingsForm, societyName: e.target.value})}
+                      placeholder="Enter society name"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="maintenanceFee">Monthly Maintenance (₹)</Label>
+                    <Input
+                      id="maintenanceFee"
+                      type="number"
+                      value={settingsForm.maintenanceFee}
+                      onChange={(e) => setSettingsForm({...settingsForm, maintenanceFee: parseInt(e.target.value) || 0})}
+                      placeholder="2500"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="lateFee">Late Fee (₹)</Label>
+                    <Input
+                      id="lateFee"
+                      type="number"
+                      value={settingsForm.lateFee}
+                      onChange={(e) => setSettingsForm({...settingsForm, lateFee: parseInt(e.target.value) || 0})}
+                      placeholder="100"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="dueDay">Due Day</Label>
+                    <Input
+                      id="dueDay"
+                      type="number"
+                      value={settingsForm.dueDay}
+                      onChange={(e) => setSettingsForm({...settingsForm, dueDay: parseInt(e.target.value) || 15})}
+                      placeholder="15"
+                      min="1"
+                      max="31"
+                    />
+                  </div>
+
+                  <Button className="w-full" onClick={handleSaveSettings}>
+                    Save Settings
+                  </Button>
+                </div>
+              </MobileCard>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* Desktop Dashboard */}
+      <div className="hidden md:block min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 w-full overflow-x-hidden">
       {/* Enhanced Hero Header */}
       <div className="relative overflow-hidden bg-gradient-to-br from-slate-800 via-purple-800 to-slate-800 p-4 sm:p-6 lg:p-12 rounded-b-3xl shadow-2xl mx-2 sm:mx-4 lg:mx-0">
         <div className="absolute inset-0 bg-black/20"></div>
@@ -726,5 +1353,6 @@ export const AdminDashboard = () => {
         </Card>
       </div>
     </div>
+    </>
   );
 };

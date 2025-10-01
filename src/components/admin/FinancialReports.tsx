@@ -22,6 +22,8 @@ import {
   Printer
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import MobileCard from '@/components/ui/MobileCard';
+import { motion } from 'framer-motion';
 import {
   getSocietyStats,
   getRecentPayments,
@@ -697,7 +699,212 @@ export const FinancialReports = () => {
     );
   }
 
+  // Mobile View
   return (
+    <>
+      {/* Mobile View */}
+      <div className="md:hidden min-h-screen bg-white overflow-x-hidden">
+        <motion.div
+          className="bg-white shadow-sm p-6 border-b"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <h1 className="text-xl font-bold text-gray-900">Reports</h1>
+          <p className="text-sm text-gray-600">Financial analytics</p>
+        </motion.div>
+
+        <div className="p-4 space-y-6 pb-24">
+          {/* Key Metrics Cards */}
+          <motion.div
+            className="grid grid-cols-2 gap-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.1, duration: 0.4 }}
+          >
+            <MobileCard className="text-center">
+              <div className="text-2xl font-bold text-green-600">₹{metrics.totalRevenue.toLocaleString()}</div>
+              <div className="text-xs text-gray-600 mt-1">Revenue</div>
+            </MobileCard>
+            <MobileCard className="text-center">
+              <div className="text-2xl font-bold text-red-600">₹{metrics.totalExpenses.toLocaleString()}</div>
+              <div className="text-xs text-gray-600 mt-1">Expenses</div>
+            </MobileCard>
+            <MobileCard className="text-center">
+              <div className="text-2xl font-bold text-blue-600">₹{Math.abs(metrics.netIncome).toLocaleString()}</div>
+              <div className="text-xs text-gray-600 mt-1">{metrics.netIncome >= 0 ? 'Profit' : 'Loss'}</div>
+            </MobileCard>
+            <MobileCard className="text-center">
+              <div className="text-2xl font-bold text-purple-600">{metrics.collectionRate.toFixed(1)}%</div>
+              <div className="text-xs text-gray-600 mt-1">Collection</div>
+            </MobileCard>
+          </motion.div>
+
+          {/* Period Selector */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+          >
+            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select period" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="6months">Last 6 Months</SelectItem>
+                <SelectItem value="12months">Last 12 Months</SelectItem>
+                <SelectItem value="month-Jan">January</SelectItem>
+                <SelectItem value="month-Feb">February</SelectItem>
+                <SelectItem value="month-Mar">March</SelectItem>
+                <SelectItem value="month-Apr">April</SelectItem>
+                <SelectItem value="month-May">May</SelectItem>
+                <SelectItem value="month-Jun">June</SelectItem>
+                <SelectItem value="month-Jul">July</SelectItem>
+                <SelectItem value="month-Aug">August</SelectItem>
+                <SelectItem value="month-Sep">September</SelectItem>
+                <SelectItem value="month-Oct">October</SelectItem>
+                <SelectItem value="month-Nov">November</SelectItem>
+                <SelectItem value="month-Dec">December</SelectItem>
+              </SelectContent>
+            </Select>
+          </motion.div>
+
+          {/* Charts */}
+          {metrics.monthlyData && metrics.monthlyData.length > 0 ? (
+            <>
+              {/* Revenue vs Expenses Chart */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3, duration: 0.4 }}
+              >
+                <MobileCard>
+                  <h3 className="text-lg font-semibold mb-4 text-center">Revenue vs Expenses</h3>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <ComposedChart data={metrics.monthlyData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" fontSize={12} />
+                      <YAxis fontSize={12} />
+                      <Tooltip formatter={(value) => [`₹${value}K`, '']} />
+                      <Bar dataKey="revenue" fill="#10b981" name="Revenue" />
+                      <Line type="monotone" dataKey="expenses" stroke="#ef4444" strokeWidth={2} name="Expenses" />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </MobileCard>
+              </motion.div>
+
+              {/* Payment Status Chart */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4, duration: 0.4 }}
+              >
+                <MobileCard>
+                  <h3 className="text-lg font-semibold mb-4 text-center">Payment Status</h3>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <RechartsPieChart>
+                      <Pie
+                        data={metrics.paymentStatusData}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={60}
+                        fill="#8884d8"
+                        dataKey="value"
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        labelLine={false}
+                      >
+                        {metrics.paymentStatusData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </RechartsPieChart>
+                  </ResponsiveContainer>
+                </MobileCard>
+              </motion.div>
+
+              {/* Expense Categories Chart */}
+              {metrics.expenseChartData && metrics.expenseChartData.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5, duration: 0.4 }}
+                >
+                  <MobileCard>
+                    <h3 className="text-lg font-semibold mb-4 text-center">Expense Categories</h3>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <RechartsPieChart>
+                        <Pie
+                          data={metrics.expenseChartData}
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={60}
+                          fill="#8884d8"
+                          dataKey="value"
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          labelLine={false}
+                        >
+                          {metrics.expenseChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value) => [`₹${Number(value).toLocaleString()}`, 'Amount']} />
+                      </RechartsPieChart>
+                    </ResponsiveContainer>
+                  </MobileCard>
+                </motion.div>
+              )}
+            </>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
+            >
+              <MobileCard>
+                <div className="text-center py-8">
+                  <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-500">No chart data available</p>
+                  <p className="text-sm text-gray-400 mt-1">Add financial data to see visualizations</p>
+                </div>
+              </MobileCard>
+            </motion.div>
+          )}
+
+          {/* Action Buttons */}
+          <motion.div
+            className="grid grid-cols-2 gap-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6, duration: 0.4 }}
+          >
+            <Button
+              onClick={handleDownloadReport}
+              disabled={generatingPDF}
+              className="bg-blue-500 text-white py-3 rounded-2xl font-medium"
+            >
+              {generatingPDF ? (
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4 mr-2" />
+              )}
+              {generatingPDF ? 'Generating...' : 'Download PDF'}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={loadReportData}
+              disabled={loading}
+              className="py-3 rounded-2xl font-medium"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Desktop View */}
+      <div className="hidden md:block">
     <div className="space-y-4 sm:space-y-6 w-full overflow-x-hidden" id="report-content">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -1387,5 +1594,7 @@ export const FinancialReports = () => {
         </div>
       </Card>
     </div>
+    </div>
+    </>
   );
 };

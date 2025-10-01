@@ -33,7 +33,7 @@ import { Label } from '@/components/ui/label';
 import type { Bill, Notice } from '@/lib/firestoreServices';
 
 export const MemberDashboard = () => {
-  const { uid, userEmail, userData, updateUserData } = useUser();
+  const { uid, userEmail, userData, updateUserData, setCurrentView } = useUser();
   const { toast } = useToast();
   const [bills, setBills] = useState<Bill[]>([]);
   const [notices, setNotices] = useState<Notice[]>([]);

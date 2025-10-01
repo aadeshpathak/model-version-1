@@ -6,9 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  FileText, 
-  Plus, 
+import {
+  FileText,
+  Plus,
   Search,
   Calendar,
   DollarSign,
@@ -17,13 +17,20 @@ import {
   AlertTriangle,
   Users,
   Download,
-  Send
+  Send,
+  Trash2,
+  MoreVertical,
+  RotateCcw,
+  Receipt,
+  Bell
 } from 'lucide-react';
 import { getMembers, getAllBills, generateMonthlyBills, updateBill, addNotice, type User as Member, type Bill } from '@/lib/firestoreServices';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import MobileCard from '@/components/ui/MobileCard';
+import { motion } from 'framer-motion';
 
 export const BillManagement = () => {
   const [bills, setBills] = useState<Bill[]>([]);
@@ -32,6 +39,9 @@ export const BillManagement = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [monthFilter, setMonthFilter] = useState<string>('all');
   const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
+  const [openMenuBillId, setOpenMenuBillId] = useState<string | null>(null);
+  const [actionDialogOpen, setActionDialogOpen] = useState(false);
+  const [selectedBill, setSelectedBill] = useState<any>(null);
   const { toast } = useToast();
 
   const [generateForm, setGenerateForm] = useState({
@@ -249,11 +259,337 @@ export const BillManagement = () => {
     collectedAmount: filteredBills.filter(b => b.status === 'paid').reduce((sum, bill) => sum + bill.amount + (bill.lateFee || 0), 0)
   };
 
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+  const months = ['January', 'February', 'March', 'April', 'May', 'June',
                   'July', 'August', 'September', 'October', 'November', 'December'];
 
+  // Mobile View
   return (
-    <div className="space-y-6">
+    <>
+      {/* Mobile View */}
+      <div className="md:hidden min-h-screen bg-white overflow-x-hidden">
+        <motion.div
+          className="bg-white shadow-sm p-6 border-b"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <h1 className="text-xl font-bold text-gray-900">Bills</h1>
+          <p className="text-sm text-gray-600">Manage maintenance bills</p>
+        </motion.div>
+
+        <div className="p-4 space-y-6 pb-24">
+          {/* Stats Cards */}
+          <motion.div
+            className="grid grid-cols-2 gap-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.1, duration: 0.4 }}
+          >
+            <MobileCard className="text-center">
+              <div className="text-2xl font-bold text-blue-600">{stats.total}</div>
+              <div className="text-xs text-gray-600 mt-1">Total Bills</div>
+            </MobileCard>
+            <MobileCard className="text-center">
+              <div className="text-2xl font-bold text-green-600">{stats.paid}</div>
+              <div className="text-xs text-gray-600 mt-1">Paid</div>
+            </MobileCard>
+            <MobileCard className="text-center">
+              <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
+              <div className="text-xs text-gray-600 mt-1">Pending</div>
+            </MobileCard>
+            <MobileCard className="text-center">
+              <div className="text-2xl font-bold text-red-600">{stats.overdue}</div>
+              <div className="text-xs text-gray-600 mt-1">Overdue</div>
+            </MobileCard>
+          </motion.div>
+
+          {/* Generate Bills Button */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+          >
+            <Dialog open={isGenerateDialogOpen} onOpenChange={setIsGenerateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="w-full bg-blue-500 text-white py-3 rounded-2xl font-medium">
+                  <Plus className="w-5 h-5 mr-2" />
+                  Generate Bills
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md mx-4">
+                <DialogHeader>
+                  <DialogTitle>Generate Monthly Bills</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleGenerateBills} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="month">Month</Label>
+                      <Select value={generateForm.month} onValueChange={(value) => setGenerateForm({...generateForm, month: value})}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {months.map((month, index) => (
+                            <SelectItem key={month} value={(index + 1).toString()}>
+                              {month}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="year">Year</Label>
+                      <Input
+                        id="year"
+                        type="number"
+                        value={generateForm.year}
+                        onChange={(e) => setGenerateForm({...generateForm, year: e.target.value})}
+                        min="2020"
+                        max="2030"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="target">Generate for</Label>
+                    <Select value={generateForm.target} onValueChange={(value) => setGenerateForm({...generateForm, target: value})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Members</SelectItem>
+                        <SelectItem value="specific">Specific Member</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {generateForm.target === 'specific' && (
+                    <div>
+                      <Label htmlFor="member">Select Member</Label>
+                      <Select value={generateForm.selectedMember} onValueChange={(value) => setGenerateForm({...generateForm, selectedMember: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choose a member" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {members.map((member) => (
+                            <SelectItem key={member.id} value={member.id}>
+                              {member.fullName} (Flat {member.flatNumber})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  <div>
+                    <Label htmlFor="amount">Bill Amount (₹)</Label>
+                    <Input
+                      id="amount"
+                      type="number"
+                      value={generateForm.amount}
+                      onChange={(e) => setGenerateForm({...generateForm, amount: e.target.value})}
+                      placeholder="2500"
+                      min="1"
+                      required
+                    />
+                  </div>
+                  <div className="flex gap-2 pt-4">
+                    <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white">
+                      Generate Bills
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setIsGenerateDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </motion.div>
+
+          {/* Search and Filters */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.4 }}
+          >
+            <div className="space-y-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  placeholder="Search bills..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="overdue">Overdue</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={monthFilter} onValueChange={setMonthFilter}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Months</SelectItem>
+                    {months.map(month => (
+                      <SelectItem key={month} value={month}>{month}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Bills List */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.4 }}
+          >
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">Bills ({filteredBills.length})</h2>
+            <div className="max-h-96 overflow-y-auto space-y-3">
+              {filteredBills.map((bill, index) => {
+                const member = getMemberById(bill.memberId);
+                return (
+                  <motion.div
+                    key={bill.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.5 + index * 0.05, duration: 0.3 }}
+                  >
+                    <MobileCard>
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold text-sm">{member?.fullName || 'Unknown'}</h3>
+                            <Badge variant={bill.status === 'paid' ? "default" : bill.status === 'overdue' ? "destructive" : "secondary"} className="text-xs">
+                              {bill.status}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-gray-600">Flat {member?.flatNumber} • {bill.month} {bill.year}</p>
+                          <p className="text-xs text-gray-600">Due: {bill.dueDate?.toDate().toLocaleDateString()}</p>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          <div className="text-right">
+                            <p className="font-bold text-lg">₹{(bill.amount + (bill.lateFee || 0)).toLocaleString()}</p>
+                            {bill.lateFee && bill.lateFee > 0 && (
+                              <p className="text-xs text-orange-600">+₹{bill.lateFee} late fee</p>
+                            )}
+                          </div>
+                          <motion.button
+                            className="p-2 rounded-lg hover:bg-gray-100"
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => {
+                              setSelectedBill(bill);
+                              setActionDialogOpen(true);
+                            }}
+                          >
+                            <MoreVertical size={16} />
+                          </motion.button>
+                        </div>
+                      </div>
+                    </MobileCard>
+                  </motion.div>
+                );
+              })}
+            </div>
+            {filteredBills.length === 0 && (
+              <div className="text-center py-8">
+                <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-500">No bills found</p>
+              </div>
+            )}
+          </motion.div>
+
+          {/* Action Dialog */}
+          <Dialog open={actionDialogOpen} onOpenChange={setActionDialogOpen}>
+            <DialogContent className="max-w-sm z-[1000]">
+              <DialogHeader>
+                <DialogTitle>Bill Actions</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-2">
+                {selectedBill && selectedBill.status === 'paid' ? (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => {
+                      markAsUnpaid(selectedBill.id);
+                      setActionDialogOpen(false);
+                    }}
+                  >
+                    <RotateCcw size={16} className="mr-2" />
+                    Mark as Unpaid
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => {
+                      markAsPaid(selectedBill.id);
+                      setActionDialogOpen(false);
+                    }}
+                  >
+                    <CheckCircle size={16} className="mr-2" />
+                    Mark as Paid
+                  </Button>
+                )}
+                {selectedBill && selectedBill.status !== 'paid' && (
+                  <>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => {
+                        addLateFee(selectedBill.id);
+                        setActionDialogOpen(false);
+                      }}
+                    >
+                      <AlertTriangle size={16} className="mr-2" />
+                      Add Late Fee
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => {
+                        sendReminder(selectedBill);
+                        setActionDialogOpen(false);
+                      }}
+                    >
+                      <Bell size={16} className="mr-2" />
+                      Send Reminder
+                    </Button>
+                  </>
+                )}
+                {selectedBill && selectedBill.status === 'paid' && selectedBill.receiptNumber && (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => {
+                      toast({
+                        title: "Download Started",
+                        description: `Downloading receipt ${selectedBill.receiptNumber}`,
+                      });
+                      setActionDialogOpen(false);
+                    }}
+                  >
+                    <Receipt size={16} className="mr-2" />
+                    Download Receipt
+                  </Button>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      {/* Desktop View */}
+      <div className="hidden md:block">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -571,5 +907,7 @@ export const BillManagement = () => {
         )}
       </Card>
     </div>
+  );
+    </>
   );
 };
