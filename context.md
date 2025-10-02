@@ -116,8 +116,8 @@ If you're cloning this repository from GitHub for the first time, follow these s
 
 1. **Clone the Repository**
    ```bash
-   git clone https://github.com/aadeshpathak/pay-my-society.git
-   cd pay-my-society-main
+   git clone https://github.com/aadeshpathak/model-version-1.git
+   cd model-version-1
    ```
 
 2. **Install Dependencies**
