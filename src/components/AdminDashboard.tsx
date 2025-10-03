@@ -6,7 +6,7 @@ import { Users, IndianRupee, TrendingUp, AlertTriangle, CheckCircle2, Clock, Plu
 import { FinanceChart } from './FinanceChart';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { getSocietyStats, getRecentPayments, getOverdueMembers, generateMonthlyBills, addExpense, addNotice, getMembers, getRecentBills, getRecentExpenses, deleteBill, getAllNotices } from '@/lib/firestoreServices';
+import { getSocietyStats, getRecentPayments, getOverdueMembers, generateMonthlyBills, addExpense, addNotice, getMembers, getRecentBills, getRecentExpenses, deleteBill, getAllNotices, getAllExpenses } from '@/lib/firestoreServices';
 import { BillReceipt } from '@/components/BillReceipt';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -48,6 +48,8 @@ export const AdminDashboard = () => {
   });
   const [selectedVisualization, setSelectedVisualization] = useState('overview');
   const [selectedMonth, setSelectedMonth] = useState('all');
+  const [selectedMonthCalc, setSelectedMonthCalc] = useState((new Date().getMonth() + 1).toString());
+  const [selectedYearCalc, setSelectedYearCalc] = useState(new Date().getFullYear().toString());
   const [readersDialogOpen, setReadersDialogOpen] = useState(false);
   const [selectedNoticeReaders, setSelectedNoticeReaders] = useState<{ notice: any; readers: any[] } | null>(null);
   const [receiptDialog, setReceiptDialog] = useState<{
@@ -68,6 +70,54 @@ export const AdminDashboard = () => {
       toast({ title: "Settings Saved", description: "Society settings have been updated successfully." });
     } catch (error) {
       toast({ title: "Error", description: "Failed to save settings.", variant: "destructive" });
+    }
+  };
+
+  const calculateMaintenanceFee = async () => {
+    try {
+      const expenses = await new Promise<any[]>((resolve) => getAllExpenses(resolve));
+      if (expenses.length === 0) {
+        toast({
+          title: "No Expenses Found",
+          description: "Cannot calculate maintenance fee without expense data.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Filter expenses for selected month and year
+      const selectedMonthName = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][parseInt(selectedMonthCalc) - 1];
+      const filteredExpenses = expenses.filter(expense =>
+        expense.month === selectedMonthName && parseInt(expense.year) === parseInt(selectedYearCalc)
+      );
+
+      if (filteredExpenses.length === 0) {
+        toast({
+          title: "No Expenses Found",
+          description: `No expenses found for ${selectedMonthName}/${selectedYearCalc}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const totalExpenses = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+      const activeMembers = stats?.activeMembers || 0;
+
+      // Divide by active members and round to nearest whole number
+      const calculatedFee = activeMembers > 0 ? Math.round(totalExpenses / activeMembers) : 0;
+
+      setSettingsForm({ ...settingsForm, maintenanceFee: calculatedFee });
+
+      toast({
+        title: "Maintenance Fee Calculated",
+        description: `Calculated ₹${calculatedFee} per member based on ${selectedMonthName}/${selectedYearCalc} expenses divided by ${activeMembers} members.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Calculation Failed",
+        description: "Failed to calculate maintenance fee.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -1000,15 +1050,52 @@ export const AdminDashboard = () => {
                     />
                   </div>
 
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="selectedMonthCalc">Month</Label>
+                      <Select value={selectedMonthCalc} onValueChange={setSelectedMonthCalc}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 12 }, (_, i) => (
+                            <SelectItem key={i + 1} value={(i + 1).toString()}>
+                              {new Date(0, i).toLocaleString('default', { month: 'long' })}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="selectedYearCalc">Year</Label>
+                      <Input
+                        id="selectedYearCalc"
+                        type="number"
+                        value={selectedYearCalc}
+                        onChange={(e) => setSelectedYearCalc(e.target.value)}
+                        min="2020"
+                        max="2030"
+                      />
+                    </div>
+                  </div>
+
                   <div>
                     <Label htmlFor="maintenanceFee">Monthly Maintenance (₹)</Label>
-                    <Input
-                      id="maintenanceFee"
-                      type="number"
-                      value={settingsForm.maintenanceFee}
-                      onChange={(e) => setSettingsForm({...settingsForm, maintenanceFee: parseInt(e.target.value) || 0})}
-                      placeholder="2500"
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        id="maintenanceFee"
+                        type="number"
+                        value={settingsForm.maintenanceFee}
+                        onChange={(e) => setSettingsForm({...settingsForm, maintenanceFee: parseInt(e.target.value) || 0})}
+                        placeholder="2500"
+                      />
+                      <Button type="button" variant="outline" onClick={calculateMaintenanceFee} className="px-3">
+                        Calculate
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Click "Calculate" to set fee based on selected month's expenses
+                    </p>
                   </div>
 
                   <div>

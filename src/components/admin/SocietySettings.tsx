@@ -160,8 +160,8 @@ export const SocietySettings = () => {
 
       const totalExpenses = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
-      // Divide by active members (excluding admins)
-      const calculatedFee = activeMembers > 0 ? Math.round((totalExpenses / activeMembers) * 100) / 100 : 0;
+      // Divide by active members (excluding admins) and round to nearest whole number
+      const calculatedFee = activeMembers > 0 ? Math.round(totalExpenses / activeMembers) : 0;
 
       setSettings({ ...settings, maintenanceFee: calculatedFee });
 

@@ -164,10 +164,37 @@ export const FinancialReports = () => {
 
   // Calculate financial metrics
   const calculateMetrics = () => {
-    const totalRevenue = stats?.totalCollection || 0;
-    const totalExpenses = stats?.totalExpenses || 0;
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const fullMonthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+
+    const isInPeriod = (month, year, period) => {
+      const transMonth = typeof month === 'string' ? month : monthNames[month - 1];
+      const transYear = year;
+      if (period === '6months') {
+        const transDate = new Date(transYear, monthNames.indexOf(transMonth), 1);
+        const sixMonthsAgo = new Date(currentYear, currentDate.getMonth() - 5, 1);
+        return transDate >= sixMonthsAgo;
+      } else if (period === '12months') {
+        const transDate = new Date(transYear, monthNames.indexOf(transMonth), 1);
+        const twelveMonthsAgo = new Date(currentYear, currentDate.getMonth() - 11, 1);
+        return transDate >= twelveMonthsAgo;
+      } else if (period.startsWith('month-')) {
+        const targetMonth = period.split('-')[1];
+        return transMonth === targetMonth && transYear === currentYear;
+      }
+      return true;
+    };
+
+    const filteredBills = recentBills.filter(bill => isInPeriod(bill.month, bill.year, selectedPeriod));
+    const filteredExpenses = allExpenses.filter(expense => isInPeriod(expense.month, expense.year, selectedPeriod));
+
+    const totalRevenue = filteredBills.filter(b => b.status === 'paid').reduce((sum, b) => sum + (b.amount || 0), 0);
+    const totalExpenses = filteredExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const pendingCollection = filteredBills.filter(b => b.status === 'pending').reduce((sum, b) => sum + (b.amount || 0), 0);
     const netIncome = totalRevenue - totalExpenses;
-    const collectionRate = stats?.collectionRate || 0;
+    const collectionRate = totalRevenue + pendingCollection > 0 ? (totalRevenue / (totalRevenue + pendingCollection)) * 100 : 0;
     const activeMembers = stats?.activeMembers || 0;
     const totalMembers = stats?.totalMembers || 0;
 
@@ -175,7 +202,7 @@ export const FinancialReports = () => {
     const monthlyData = calculateMonthlyTrends(selectedPeriod);
 
     // Expense categories breakdown
-    const expenseCategories = allExpenses.reduce((acc, expense) => {
+    const expenseCategories = filteredExpenses.reduce((acc, expense) => {
       acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
       return acc;
     }, {});
@@ -188,8 +215,8 @@ export const FinancialReports = () => {
 
     // Payment status breakdown
     const paymentStatusData = [
-      { name: 'Paid', value: (totalRevenue / (totalRevenue + (stats?.pendingCollection || 0))) * 100, color: '#10b981' },
-      { name: 'Pending', value: ((stats?.pendingCollection || 0) / (totalRevenue + (stats?.pendingCollection || 0))) * 100, color: '#f59e0b' },
+      { name: 'Paid', value: totalRevenue + pendingCollection > 0 ? (totalRevenue / (totalRevenue + pendingCollection)) * 100 : 0, color: '#10b981' },
+      { name: 'Pending', value: pendingCollection > 0 ? (pendingCollection / (totalRevenue + pendingCollection)) * 100 : 0, color: '#f59e0b' },
       { name: 'Overdue', value: 5, color: '#ef4444' }
     ];
 

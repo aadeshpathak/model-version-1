@@ -28,6 +28,7 @@
   - src/components/ui/MobileCard.tsx: Neumorphism-style cards for mobile.
   - src/index.css: Custom CSS utilities for animations, mobile responsiveness, and enhanced styling.
   - src/App.css: Mobile-specific overflow-x hidden rules.
+  - src/components/admin/FinancialReports.tsx: Fixed mobile reports visualizations to respect applied period filters, ensuring all charts and metrics update according to selected time period.
 - **UI Features**: Mobile-responsive design, smooth animations, professional styling, no horizontal scroll, touch-friendly interface, neumorphism cards, bottom navigation, advanced filtering with year dropdown, real-time expense editing.
 
 ## What's Working
@@ -74,6 +75,7 @@
 - **Notices Page Layout**: Improved responsive layout and added actual notice management content for mobile.
 - **Navigation Improvements**: Added logout to bottom hamburger menu and removed redundant top hamburger.
 - **Expense Management Enhancements**: Added real-time expense editing with month-specific operations, year filtering dropdown (2020-current), and advanced category management with conditional edit/delete based on filter selections.
+- **Mobile Reports Visualizations Filter Issue**: Fixed visualizations in mobile reports not updating according to applied period filters. Modified calculateMetrics to filter bills and expenses by selected period before calculating chart data and metrics, ensuring expense categories, payment status, and revenue charts respect the selected time period (6 months, 12 months, or specific month).
 
 ## Your Actions Taken
 - Enabled Firebase Auth (Email/Password) with user registration and approval workflow.
