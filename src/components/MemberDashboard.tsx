@@ -5,7 +5,7 @@ import MobileCard from '@/components/ui/MobileCard';
 import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/context/UserContext';
-import { getMemberBills, getMemberNotices, getMemberExpenses, updateBill, addNotice, getSocietySettings } from '@/lib/firestoreServices';
+import { getMemberBills, getMemberNotices, getMemberExpenses, updateBill, addNotice, getSocietySettings, markNoticeAsRead } from '@/lib/firestoreServices';
 import { Timestamp } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import {
@@ -39,7 +39,7 @@ import { Label } from '@/components/ui/label';
 import type { Bill, Notice } from '@/lib/firestoreServices';
 
 export const MemberDashboard = () => {
-  const { uid, userEmail, userData, updateUserData, setCurrentView } = useUser();
+  const { uid, userEmail, userData, updateUserData, setCurrentView, setUnreadNoticesCount } = useUser();
   const { toast } = useToast();
   const [bills, setBills] = useState<Bill[]>([]);
   const [notices, setNotices] = useState<Notice[]>([]);
@@ -82,6 +82,13 @@ export const MemberDashboard = () => {
     }
   }, [userData]);
 
+  useEffect(() => {
+    if (notices.length > 0 && uid) {
+      const unread = notices.filter(notice => !notice.readBy || !notice.readBy.includes(uid)).length;
+      setUnreadNoticesCount(unread);
+    }
+  }, [notices, uid, setUnreadNoticesCount]);
+
   const handleProfileUpdate = async () => {
     try {
       await updateUserData(profileForm);
@@ -100,6 +107,19 @@ export const MemberDashboard = () => {
       });
     }
   };
+
+  const handleNoticeClick = async (noticeId: string) => {
+    if (uid) {
+      try {
+        await markNoticeAsRead(noticeId, uid);
+        // The notices will update via the listener, and unread count will recalculate
+      } catch (error) {
+        console.error('Error marking notice as read:', error);
+      }
+    }
+  };
+
+  const unreadCount = notices.filter(n => !n.readBy || !n.readBy.includes(uid)).length;
 
   const memberData = {
     name: userData?.fullName || userEmail.split('@')[0],
@@ -257,8 +277,8 @@ export const MemberDashboard = () => {
                 <div className="text-xs text-white/80">Status</div>
               </div>
               <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-3 text-white text-center">
-                <div className="text-lg font-bold">{memberData.notices.length}</div>
-                <div className="text-xs text-white/80">Notices</div>
+                <div className="text-lg font-bold">{unreadCount}</div>
+                <div className="text-xs text-white/80">Unread Notices</div>
               </div>
             </motion.div>
 
@@ -354,8 +374,8 @@ export const MemberDashboard = () => {
                     <Bell className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="text-sm text-purple-700 font-medium">New Notices</p>
-                    <p className="text-xl font-bold text-purple-900">{memberData.notices.length}</p>
+                    <p className="text-sm text-purple-700 font-medium">Unread Notices</p>
+                    <p className="text-xl font-bold text-purple-900">{unreadCount}</p>
                   </div>
                 </div>
                 <div className="text-xs text-purple-600">Unread announcements</div>
@@ -518,6 +538,8 @@ export const MemberDashboard = () => {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.6 + index * 0.1, duration: 0.3 }}
+                  onClick={() => handleNoticeClick(notice.id)}
+                  className="cursor-pointer"
                 >
                   <MobileCard>
                     <h3 className="font-semibold text-sm">{notice.title}</h3>
@@ -861,13 +883,13 @@ export const MemberDashboard = () => {
             <div className="p-6 border-b border-border">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold">Recent Notices</h2>
-                <Badge variant="destructive">{memberData.notices.length} New</Badge>
+                <Badge variant="destructive">{unreadCount} Unread</Badge>
               </div>
             </div>
             <div className="p-6">
               <div className="space-y-4">
                 {memberData.notices.map((notice) => (
-                  <div key={notice.id} className="flex items-start gap-3 p-4 rounded-xl hover:bg-muted/50 transition-smooth cursor-pointer">
+                  <div key={notice.id} className="flex items-start gap-3 p-4 rounded-xl hover:bg-muted/50 transition-smooth cursor-pointer" onClick={() => handleNoticeClick(notice.id)}>
                     <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
                     <div className="flex-1">
                       <h3 className="font-semibold text-sm">{notice.title}</h3>

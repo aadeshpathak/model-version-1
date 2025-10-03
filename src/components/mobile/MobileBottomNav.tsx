@@ -4,7 +4,7 @@ import { Home, FileText, CreditCard, Bell, Menu, User, Settings, Users, BarChart
 import { useUser } from '@/context/UserContext';
 
 const MobileBottomNav: React.FC = () => {
-  const { currentView, setCurrentView, currentUser, handleLogout } = useUser();
+  const { currentView, setCurrentView, currentUser, handleLogout, unreadNoticesCount } = useUser();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const getNavItems = () => {
@@ -53,7 +53,7 @@ const MobileBottomNav: React.FC = () => {
               <motion.button
                 key={item.id}
                 onClick={() => handleNavClick(item.id)}
-                className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-h-[44px] min-w-[44px] ${
+                className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-h-[44px] min-w-[44px] relative ${
                   isActive
                     ? 'text-blue-600 bg-blue-50'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -63,7 +63,14 @@ const MobileBottomNav: React.FC = () => {
                 role="tab"
                 aria-selected={isActive}
               >
-                <Icon size={22} className="mb-1" />
+                <div className="relative">
+                  <Icon size={22} className="mb-1" />
+                  {item.id === 'notices' && unreadNoticesCount > 0 && (
+                    <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center font-bold">
+                      {unreadNoticesCount > 9 ? '9+' : unreadNoticesCount}
+                    </div>
+                  )}
+                </div>
                 <span className="text-xs font-medium">{item.label}</span>
                 {isActive && (
                   <motion.div

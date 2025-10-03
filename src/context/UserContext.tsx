@@ -18,6 +18,8 @@ interface UserContextType {
   dismissed: boolean;
   userData: User | null;
   isInitializing: boolean;
+  unreadNoticesCount: number;
+  setUnreadNoticesCount: (count: number) => void;
   handleLogin: (userType: UserType, email: string, uid: string, approved: boolean, dismissed: boolean) => void;
   handleLogout: () => void;
   setCurrentView: React.Dispatch<React.SetStateAction<string>>;
@@ -48,6 +50,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
   const [dismissed, setDismissed] = useState(false);
   const [userData, setUserData] = useState<User | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [unreadNoticesCount, setUnreadNoticesCount] = useState(0);
 
   // Session management constants
   const SESSION_TIMEOUT = 20 * 60 * 1000; // 20 minutes in milliseconds
@@ -305,6 +308,8 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     dismissed,
     userData,
     isInitializing,
+    unreadNoticesCount,
+    setUnreadNoticesCount,
     handleLogin,
     handleLogout,
     setCurrentView,
