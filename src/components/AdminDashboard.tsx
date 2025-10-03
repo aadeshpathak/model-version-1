@@ -7,6 +7,7 @@ import { FinanceChart } from './FinanceChart';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { getSocietyStats, getRecentPayments, getOverdueMembers, generateMonthlyBills, addExpense, addNotice, getMembers, getRecentBills, getRecentExpenses, deleteBill, getAllNotices } from '@/lib/firestoreServices';
+import { BillReceipt } from '@/components/BillReceipt';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Timestamp } from 'firebase/firestore';
@@ -47,8 +48,13 @@ export const AdminDashboard = () => {
   });
   const [selectedVisualization, setSelectedVisualization] = useState('overview');
   const [selectedMonth, setSelectedMonth] = useState('all');
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [billToDelete, setBillToDelete] = useState(null);
+  const [readersDialogOpen, setReadersDialogOpen] = useState(false);
+  const [selectedNoticeReaders, setSelectedNoticeReaders] = useState<{ notice: any; readers: any[] } | null>(null);
+  const [receiptDialog, setReceiptDialog] = useState<{
+    open: boolean;
+    bill: any;
+    member: any;
+  }>({ open: false, bill: null, member: null });
 
   const handleSaveSettings = async () => {
     try {
@@ -120,11 +126,31 @@ export const AdminDashboard = () => {
         toast({ title: "Error", description: "Please fill all fields.", variant: "destructive" });
         return;
       }
+
+      // Validate month selection
+      if (expenseForm.month !== 'ALL' && !['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].includes(expenseForm.month)) {
+        toast({ title: "Error", description: "Please select a valid month.", variant: "destructive" });
+        return;
+      }
+
       const target = expenseForm.target === 'all' ? 'all' : expenseForm.selectedMembers;
-      await addExpense({ amount, category: expenseForm.category, vendor: expenseForm.vendor, month: expenseForm.month, year: parseInt(expenseForm.year), target });
+
+      if (expenseForm.month === 'ALL') {
+        // Add expense for all months
+        const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const expensePromises = months.map(month =>
+          addExpense({ amount, category: expenseForm.category, vendor: expenseForm.vendor, month, year: parseInt(expenseForm.year), target })
+        );
+        await Promise.all(expensePromises);
+        toast({ title: "Success", description: `Expense added for all 12 months and sent to ${expenseForm.target === 'all' ? 'all members' : 'selected members'}.` });
+      } else {
+        // Add expense for single month
+        await addExpense({ amount, category: expenseForm.category, vendor: expenseForm.vendor, month: expenseForm.month, year: parseInt(expenseForm.year), target });
+        toast({ title: "Success", description: `Expense info sent to ${expenseForm.target === 'all' ? 'all members' : 'selected members'}.` });
+      }
+
       setIsExpenseDialogOpen(false);
       setExpenseForm({ amount: '', category: '', vendor: '', month: '', year: '', target: 'all', selectedMembers: [] });
-      toast({ title: "Success", description: `Expense info sent to ${expenseForm.target === 'all' ? 'all members' : 'selected members'}.` });
     } catch (error) {
       toast({ title: "Error", description: "Failed to add expense.", variant: "destructive" });
     }
@@ -149,16 +175,249 @@ export const AdminDashboard = () => {
   // Mobile Dashboard - Modern App Design with Tabs
   return (
     <>
+      {/* Dialogs - Available for both mobile and desktop */}
+      <Dialog open={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add New Expense</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="amount">Amount</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  value={expenseForm.amount}
+                  onChange={(e) => setExpenseForm({...expenseForm, amount: e.target.value})}
+                  placeholder="Enter amount"
+                />
+              </div>
+              <div>
+                <Label htmlFor="category">Category</Label>
+                <Input
+                  id="category"
+                  value={expenseForm.category}
+                  onChange={(e) => setExpenseForm({...expenseForm, category: e.target.value})}
+                  placeholder="e.g., Maintenance, Utilities"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="vendor">Vendor</Label>
+                <Input
+                  id="vendor"
+                  value={expenseForm.vendor}
+                  onChange={(e) => setExpenseForm({...expenseForm, vendor: e.target.value})}
+                  placeholder="Vendor name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="month">Month</Label>
+                <select
+                  id="month"
+                  value={expenseForm.month}
+                  onChange={(e) => setExpenseForm({...expenseForm, month: e.target.value})}
+                  className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="">Select month</option>
+                  <option value="ALL">ALL Months</option>
+                  <option value="January">January</option>
+                  <option value="February">February</option>
+                  <option value="March">March</option>
+                  <option value="April">April</option>
+                  <option value="May">May</option>
+                  <option value="June">June</option>
+                  <option value="July">July</option>
+                  <option value="August">August</option>
+                  <option value="September">September</option>
+                  <option value="October">October</option>
+                  <option value="November">November</option>
+                  <option value="December">December</option>
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="year">Year</Label>
+                <Input
+                  id="year"
+                  type="number"
+                  value={expenseForm.year}
+                  onChange={(e) => setExpenseForm({...expenseForm, year: e.target.value})}
+                  placeholder="e.g., 2024"
+                />
+              </div>
+              <div>
+                <Label htmlFor="expenseTarget">Send to</Label>
+                <Select value={expenseForm.target} onValueChange={(value) => setExpenseForm({...expenseForm, target: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Members</SelectItem>
+                    <SelectItem value="specific">Specific Members</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {expenseForm.target === 'specific' && (
+              <div>
+                <Label>Select Members</Label>
+                <div className="max-h-32 overflow-y-auto border rounded p-2 space-y-2">
+                  {approvedMembers.map((member) => (
+                    <div key={member.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`expense-member-${member.id}`}
+                        checked={expenseForm.selectedMembers.includes(member.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setExpenseForm({...expenseForm, selectedMembers: [...expenseForm.selectedMembers, member.id]});
+                          } else {
+                            setExpenseForm({...expenseForm, selectedMembers: expenseForm.selectedMembers.filter(id => id !== member.id)});
+                          }
+                        }}
+                      />
+                      <Label htmlFor={`expense-member-${member.id}`}>{member.fullName} (Flat {member.flatNumber})</Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <Button onClick={handleAddExpense} className="w-full">Add Expense</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isBillDialogOpen} onOpenChange={setIsBillDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Generate Monthly Bills</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Generate monthly bills for society members with a fixed amount.</p>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="bill-month">Month</Label>
+                  <Input
+                    id="bill-month"
+                    value={billForm.month}
+                    onChange={(e) => setBillForm({...billForm, month: e.target.value})}
+                    placeholder="e.g., January"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="bill-year">Year</Label>
+                  <Input
+                    id="bill-year"
+                    type="number"
+                    value={billForm.year}
+                    onChange={(e) => setBillForm({...billForm, year: e.target.value})}
+                    placeholder="e.g., 2024"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="bill-amount">Amount (₹)</Label>
+                  <Input
+                    id="bill-amount"
+                    type="number"
+                    value={billForm.amount}
+                    onChange={(e) => setBillForm({...billForm, amount: e.target.value})}
+                    placeholder="2500"
+                    min="1"
+                  />
+                </div>
+              </div>
+
+            </div>
+
+            <Button onClick={handleGenerateBills} className="w-full" disabled={!billForm.month || !billForm.year || !billForm.amount}>
+              Generate Bills
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isNoticeDialogOpen} onOpenChange={setIsNoticeDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Send Notice to Members</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="title">Title</Label>
+              <Input
+                id="title"
+                value={noticeForm.title}
+                onChange={(e) => setNoticeForm({...noticeForm, title: e.target.value})}
+                placeholder="Notice title"
+                className="w-full"
+              />
+            </div>
+            <div>
+              <Label htmlFor="message">Message</Label>
+              <Textarea
+                id="message"
+                value={noticeForm.message}
+                onChange={(e) => setNoticeForm({...noticeForm, message: e.target.value})}
+                placeholder="Notice content"
+                rows={4}
+                className="w-full resize-none"
+              />
+            </div>
+            <div>
+              <Label htmlFor="noticeTarget">Send to</Label>
+              <Select value={noticeForm.target} onValueChange={(value) => setNoticeForm({...noticeForm, target: value})}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Members</SelectItem>
+                  <SelectItem value="specific">Specific Members</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {noticeForm.target === 'specific' && (
+              <div>
+                <Label>Select Members</Label>
+                <div className="max-h-32 overflow-y-auto border rounded p-2 space-y-2">
+                  {approvedMembers.map((member) => (
+                    <div key={member.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`notice-member-${member.id}`}
+                        checked={noticeForm.selectedMembers.includes(member.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setNoticeForm({...noticeForm, selectedMembers: [...noticeForm.selectedMembers, member.id]});
+                          } else {
+                            setNoticeForm({...noticeForm, selectedMembers: noticeForm.selectedMembers.filter(id => id !== member.id)});
+                          }
+                        }}
+                      />
+                      <Label htmlFor={`notice-member-${member.id}`} className="text-sm break-words">{member.fullName} (Flat {member.flatNumber})</Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <Button onClick={handleSendNotice} className="w-full">Send Notice</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Mobile Dashboard */}
-      <div className="md:hidden min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="md:hidden">
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-6 sticky top-16 z-10 bg-white/80 backdrop-blur-md border-b border-gray-200 rounded-none h-12">
-            <TabsTrigger value="dashboard" className="text-xs">Home</TabsTrigger>
-            <TabsTrigger value="bills" className="text-xs">Bills</TabsTrigger>
-            <TabsTrigger value="expenses" className="text-xs">Expenses</TabsTrigger>
-            <TabsTrigger value="reports" className="text-xs">Reports</TabsTrigger>
-            <TabsTrigger value="notices" className="text-xs">Notices</TabsTrigger>
-            <TabsTrigger value="settings" className="text-xs">Settings</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-6 bg-white/80 backdrop-blur-md border-b border-gray-200 rounded-none h-12 overflow-x-auto scrollbar-hide">
+            <TabsTrigger value="dashboard" className="text-xs px-1 min-w-0 flex-1 truncate">Home</TabsTrigger>
+            <TabsTrigger value="bills" className="text-xs px-1 min-w-0 flex-1 truncate">Bills</TabsTrigger>
+            <TabsTrigger value="expenses" className="text-xs px-1 min-w-0 flex-1 truncate">Expenses</TabsTrigger>
+            <TabsTrigger value="reports" className="text-xs px-1 min-w-0 flex-1 truncate">Reports</TabsTrigger>
+            <TabsTrigger value="notices" className="text-xs px-1 min-w-0 flex-1 truncate">Notices</TabsTrigger>
+            <TabsTrigger value="settings" className="text-xs px-1 min-w-0 flex-1 truncate">Settings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="mt-0">
@@ -214,7 +473,7 @@ export const AdminDashboard = () => {
             </motion.div>
 
             {/* Main Content */}
-            <div className="px-6 pb-24 pt-6 space-y-6">
+            <div className="px-2 pb-24 pt-6 space-y-6">
               {/* Quick Actions */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -455,7 +714,7 @@ export const AdminDashboard = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="bills" className="mt-0 px-6 pb-24 pt-6">
+          <TabsContent value="bills" className="mt-0 px-2 pb-24 pt-6">
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-gray-900">Bill Management</h2>
@@ -477,16 +736,37 @@ export const AdminDashboard = () => {
                         <p className="text-sm text-gray-600">₹{bill.amount?.toLocaleString()} • {bill.target === 'all' ? 'All Members' : 'Specific'}</p>
                         <p className="text-xs text-gray-500">{bill.createdAt?.toDate().toLocaleDateString()}</p>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setBillToDelete(bill);
-                          setDeleteDialogOpen(true);
-                        }}
-                      >
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setReceiptDialog({
+                            open: true,
+                            bill,
+                            member: { fullName: 'All Members', flatNumber: 'N/A' }
+                          })}
+                          className="text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                        >
+                          <FileText className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={async () => {
+                            if (window.confirm('Delete this bill permanently? This will remove it from all member dashboards.')) {
+                              try {
+                                await deleteBill(bill.id);
+                                toast({ title: "Bill Deleted", description: "Bill has been removed from all member dashboards." });
+                              } catch (error) {
+                                toast({ title: "Error", description: "Failed to delete bill.", variant: "destructive" });
+                              }
+                            }
+                          }}
+                          className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   </MobileCard>
                 )) : (
@@ -500,7 +780,7 @@ export const AdminDashboard = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="expenses" className="mt-0 px-6 pb-24 pt-6">
+          <TabsContent value="expenses" className="mt-0 px-2 pb-24 pt-6">
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-gray-900">Expense Management</h2>
@@ -538,31 +818,34 @@ export const AdminDashboard = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="reports" className="mt-0 px-6 pb-24 pt-6">
-            <div className="space-y-6">
-              <h2 className="text-xl font-bold text-gray-900">Reports & Visualizations</h2>
+          <TabsContent value="reports" className="mt-0 px-2 pb-24 pt-6">
+            <div className="space-y-4">
+              <h2 className="text-lg font-bold text-gray-900">Reports & Visualizations</h2>
 
               <div className="space-y-4">
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <Label>Visualization Type</Label>
+                {/* Mobile-friendly dropdown layout */}
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="w-full">
+                    <Label className="text-sm font-medium text-gray-700">Visualization Type</Label>
                     <Select value={selectedVisualization} onValueChange={setSelectedVisualization}>
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full mt-1">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="overview">Overview</SelectItem>
-                        <SelectItem value="visualizations">Visualizations</SelectItem>
-                        <SelectItem value="revenue">Revenue</SelectItem>
-                        <SelectItem value="expenses">Expenses</SelectItem>
-                        <SelectItem value="insight">Insight</SelectItem>
+                        <SelectItem value="visualizations">Expense Breakdown</SelectItem>
+                        <SelectItem value="revenue">Revenue Trends</SelectItem>
+                        <SelectItem value="expenses">Expense Trends</SelectItem>
+                        <SelectItem value="insight">Member Status</SelectItem>
+                        <SelectItem value="trends">Financial Trends</SelectItem>
+                        <SelectItem value="comparison">Income vs Expenses</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="flex-1">
-                    <Label>Month</Label>
+                  <div className="w-full">
+                    <Label className="text-sm font-medium text-gray-700">Month</Label>
                     <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full mt-1">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -584,24 +867,27 @@ export const AdminDashboard = () => {
                   </div>
                 </div>
 
-                <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-                  <FinanceChart visualizationType={selectedVisualization} selectedMonth={selectedMonth} />
+                {/* Mobile-responsive chart container */}
+                <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                  <div className="w-full h-64 sm:h-80 overflow-hidden">
+                    <FinanceChart visualizationType={selectedVisualization} selectedMonth={selectedMonth} />
+                  </div>
                 </div>
               </div>
             </div>
           </TabsContent>
 
-          <TabsContent value="notices" className="mt-0 px-6 pb-24 pt-6">
-            <div className="space-y-6">
+          <TabsContent value="notices" className="mt-0 px-2 pb-24 pt-6">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">Notice Management</h2>
-                <Button onClick={() => setIsNoticeDialogOpen(true)} size="sm">
-                  <Plus className="w-4 h-4 mr-2" />
+                <h2 className="text-lg font-bold text-gray-900">Notice Management</h2>
+                <Button onClick={() => setIsNoticeDialogOpen(true)} size="sm" className="text-xs px-3">
+                  <Plus className="w-3 h-3 mr-1" />
                   Send Notice
                 </Button>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {notices.length > 0 ? notices.slice(0, 10).map((notice) => (
                   <MobileCard key={notice.id}>
                     <div className="space-y-3">
@@ -609,13 +895,29 @@ export const AdminDashboard = () => {
                         <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center flex-shrink-0">
                           <Bell className="w-5 h-5 text-white" />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-gray-900 text-base leading-tight">{notice.title}</h3>
-                          <p className="text-sm text-gray-600 mt-1 line-clamp-2">{notice.message}</p>
-                          <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
-                            <span>{notice.sentAt?.toDate().toLocaleDateString()}</span>
-                            <span>•</span>
-                            <span>Read by {notice.readBy?.length || 0}</span>
+                        <div className="flex-1 min-w-0 overflow-hidden">
+                          <h3 className="font-semibold text-gray-900 text-base leading-tight break-words overflow-wrap-anywhere">{notice.title}</h3>
+                          <p className="text-sm text-gray-600 mt-1 line-clamp-2 break-words overflow-wrap-anywhere">{notice.message}</p>
+                          <div className="flex items-center justify-between mt-2">
+                            <div className="flex items-center gap-2 text-xs text-gray-500 flex-wrap">
+                              <span className="whitespace-nowrap flex-shrink-0">{notice.sentAt?.toDate().toLocaleDateString()}</span>
+                              <span className="flex-shrink-0">•</span>
+                              <span className="whitespace-nowrap flex-shrink-0">Read by {notice.readBy?.length || 0}</span>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                const readers = notice.readBy?.map((readerId: string) => {
+                                  return approvedMembers.find(member => member.id === readerId);
+                                }).filter(Boolean) || [];
+                                setSelectedNoticeReaders({ notice, readers });
+                                setReadersDialogOpen(true);
+                              }}
+                              className="p-1 h-6 w-6 text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                            >
+                              <Eye className="w-3 h-3" />
+                            </Button>
                           </div>
                         </div>
                       </div>
@@ -623,7 +925,7 @@ export const AdminDashboard = () => {
                   </MobileCard>
                 )) : (
                   <MobileCard>
-                    <div className="text-center py-8">
+                    <div className="text-center py-6">
                       <Bell className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                       <h3 className="text-lg font-semibold text-gray-700 mb-2">No Notices Sent</h3>
                       <p className="text-gray-500 text-sm">Send your first notice to keep members informed</p>
@@ -632,51 +934,57 @@ export const AdminDashboard = () => {
                 )}
               </div>
 
-              {/* Delete Bill Dialog */}
-              <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                <DialogContent className="max-w-sm z-[1000]">
+
+              {/* Notice Readers Dialog */}
+              <Dialog open={readersDialogOpen} onOpenChange={setReadersDialogOpen}>
+                <DialogContent className="max-w-md z-[1000]">
                   <DialogHeader>
-                    <DialogTitle>Delete Bill</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      Are you sure you want to delete the bill for {billToDelete?.month} {billToDelete?.year}? This will remove it from all member dashboards.
+                    <DialogTitle>Notice Readers</DialogTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      "{selectedNoticeReaders?.notice?.title}"
                     </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => setDeleteDialogOpen(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        className="flex-1"
-                        onClick={async () => {
-                          if (billToDelete) {
-                            try {
-                              await deleteBill(billToDelete.id);
-                              toast({ title: "Bill Deleted", description: "Bill has been removed from all member dashboards." });
-                              setDeleteDialogOpen(false);
-                              setBillToDelete(null);
-                            } catch (error) {
-                              toast({ title: "Error", description: "Failed to delete bill.", variant: "destructive" });
-                            }
-                          }
-                        }}
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete
-                      </Button>
-                    </div>
+                  </DialogHeader>
+                  <div className="space-y-3 max-h-60 overflow-y-auto">
+                    {selectedNoticeReaders?.readers && selectedNoticeReaders.readers.length > 0 ? (
+                      selectedNoticeReaders.readers.map((reader) => (
+                        <div key={reader.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                          <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center">
+                            <Users className="w-4 h-4 text-white" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">{reader.fullName}</p>
+                            <p className="text-sm text-gray-600">Flat {reader.flatNumber}</p>
+                          </div>
+                          <div className="ml-auto">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-6">
+                        <Eye className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                        <p className="text-sm text-gray-500">No one has read this notice yet</p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex justify-between items-center pt-3 border-t">
+                    <p className="text-sm text-gray-600">
+                      Total readers: {selectedNoticeReaders?.readers?.length || 0}
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setReadersDialogOpen(false)}
+                    >
+                      Close
+                    </Button>
                   </div>
                 </DialogContent>
               </Dialog>
             </div>
           </TabsContent>
 
-          <TabsContent value="settings" className="mt-0 px-6 pb-24 pt-6">
+          <TabsContent value="settings" className="mt-0 px-2 pb-24 pt-6">
             <div className="space-y-6">
               <h2 className="text-xl font-bold text-gray-900">Society Settings</h2>
 
@@ -810,242 +1118,6 @@ export const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 mb-6 lg:mb-8">
-        <div className="flex flex-wrap gap-2 sm:gap-4 justify-center lg:justify-start">
-          <Dialog open={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Expense
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Add New Expense</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="amount">Amount</Label>
-                    <Input
-                      id="amount"
-                      type="number"
-                      value={expenseForm.amount}
-                      onChange={(e) => setExpenseForm({...expenseForm, amount: e.target.value})}
-                      placeholder="Enter amount"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="category">Category</Label>
-                    <Input
-                      id="category"
-                      value={expenseForm.category}
-                      onChange={(e) => setExpenseForm({...expenseForm, category: e.target.value})}
-                      placeholder="e.g., Maintenance, Utilities"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="vendor">Vendor</Label>
-                    <Input
-                      id="vendor"
-                      value={expenseForm.vendor}
-                      onChange={(e) => setExpenseForm({...expenseForm, vendor: e.target.value})}
-                      placeholder="Vendor name"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="month">Month</Label>
-                    <Input
-                      id="month"
-                      value={expenseForm.month}
-                      onChange={(e) => setExpenseForm({...expenseForm, month: e.target.value})}
-                      placeholder="e.g., January"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="year">Year</Label>
-                    <Input
-                      id="year"
-                      type="number"
-                      value={expenseForm.year}
-                      onChange={(e) => setExpenseForm({...expenseForm, year: e.target.value})}
-                      placeholder="e.g., 2024"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="expenseTarget">Send to</Label>
-                    <Select value={expenseForm.target} onValueChange={(value) => setExpenseForm({...expenseForm, target: value})}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Members</SelectItem>
-                        <SelectItem value="specific">Specific Members</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                {expenseForm.target === 'specific' && (
-                  <div>
-                    <Label>Select Members</Label>
-                    <div className="max-h-32 overflow-y-auto border rounded p-2 space-y-2">
-                      {approvedMembers.map((member) => (
-                        <div key={member.id} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`expense-member-${member.id}`}
-                            checked={expenseForm.selectedMembers.includes(member.id)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setExpenseForm({...expenseForm, selectedMembers: [...expenseForm.selectedMembers, member.id]});
-                              } else {
-                                setExpenseForm({...expenseForm, selectedMembers: expenseForm.selectedMembers.filter(id => id !== member.id)});
-                              }
-                            }}
-                          />
-                          <Label htmlFor={`expense-member-${member.id}`}>{member.fullName} (Flat {member.flatNumber})</Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <Button onClick={handleAddExpense} className="w-full">Add Expense</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={isBillDialogOpen} onOpenChange={setIsBillDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
-                <Users className="w-4 h-4 mr-2" />
-                Generate Bills
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Generate Monthly Bills</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">Generate monthly bills for society members with a fixed amount.</p>
-
-                <div className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <Label htmlFor="bill-month">Month</Label>
-                      <Input
-                        id="bill-month"
-                        value={billForm.month}
-                        onChange={(e) => setBillForm({...billForm, month: e.target.value})}
-                        placeholder="e.g., January"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="bill-year">Year</Label>
-                      <Input
-                        id="bill-year"
-                        type="number"
-                        value={billForm.year}
-                        onChange={(e) => setBillForm({...billForm, year: e.target.value})}
-                        placeholder="e.g., 2024"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="bill-amount">Amount (₹)</Label>
-                      <Input
-                        id="bill-amount"
-                        type="number"
-                        value={billForm.amount}
-                        onChange={(e) => setBillForm({...billForm, amount: e.target.value})}
-                        placeholder="2500"
-                        min="1"
-                      />
-                    </div>
-                  </div>
-
-                </div>
-
-                <Button onClick={handleGenerateBills} className="w-full" disabled={!billForm.month || !billForm.year || !billForm.amount}>
-                  Generate Bills
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={isNoticeDialogOpen} onOpenChange={setIsNoticeDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
-                <Bell className="w-4 h-4 mr-2" />
-                Send Notice
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Send Notice to Members</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="title">Title</Label>
-                  <Input
-                    id="title"
-                    value={noticeForm.title}
-                    onChange={(e) => setNoticeForm({...noticeForm, title: e.target.value})}
-                    placeholder="Notice title"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="message">Message</Label>
-                  <Textarea
-                    id="message"
-                    value={noticeForm.message}
-                    onChange={(e) => setNoticeForm({...noticeForm, message: e.target.value})}
-                    placeholder="Notice content"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="noticeTarget">Send to</Label>
-                  <Select value={noticeForm.target} onValueChange={(value) => setNoticeForm({...noticeForm, target: value})}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Members</SelectItem>
-                      <SelectItem value="specific">Specific Members</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {noticeForm.target === 'specific' && (
-                  <div>
-                    <Label>Select Members</Label>
-                    <div className="max-h-32 overflow-y-auto border rounded p-2 space-y-2">
-                      {approvedMembers.map((member) => (
-                        <div key={member.id} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`notice-member-${member.id}`}
-                            checked={noticeForm.selectedMembers.includes(member.id)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setNoticeForm({...noticeForm, selectedMembers: [...noticeForm.selectedMembers, member.id]});
-                              } else {
-                                setNoticeForm({...noticeForm, selectedMembers: noticeForm.selectedMembers.filter(id => id !== member.id)});
-                              }
-                            }}
-                          />
-                          <Label htmlFor={`notice-member-${member.id}`}>{member.fullName} (Flat {member.flatNumber})</Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <Button onClick={handleSendNotice} className="w-full">Send Notice</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
 
       {/* Enhanced Stats Cards */}
       <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 mb-6 lg:mb-8">
@@ -1352,6 +1424,24 @@ export const AdminDashboard = () => {
           </div>
         </Card>
       </div>
+
+      {/* Receipt Dialog */}
+      <Dialog open={receiptDialog.open} onOpenChange={(open) => setReceiptDialog({ open, bill: null, member: null })}>
+        <DialogContent className="max-w-lg p-0">
+          <DialogHeader className="px-6 pt-6">
+            <DialogTitle>Payment Receipt</DialogTitle>
+          </DialogHeader>
+          <div className="px-6 pb-6">
+            {receiptDialog.bill && receiptDialog.member && (
+              <BillReceipt
+                bill={receiptDialog.bill}
+                member={receiptDialog.member}
+                societyName={societySettings.societyName || 'Society'}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
     </>
   );

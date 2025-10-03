@@ -160,7 +160,9 @@ export const generateMonthlyBills = async (month: string, year: number, target: 
 
   if (target === 'all') {
     const usersSnapshot = await getDocs(query(collection(db, 'users'), where('approved', '==', true)));
-    users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    users = usersSnapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() } as User))
+      .filter(user => user.role !== 'admin'); // Exclude admin users from bill generation
   } else {
     // Get specific users
     const userPromises = target.map(uid => getDoc(doc(db, 'users', uid)));
@@ -370,6 +372,17 @@ export const updateBill = async (billId: string, data: Partial<Bill>) => {
 // Delete bill
 export const deleteBill = async (billId: string) => {
   await deleteDoc(doc(db, 'bills', billId));
+};
+
+// Update expense
+export const updateExpense = async (expenseId: string, data: Partial<Expense>) => {
+  const expenseRef = doc(db, 'expenses', expenseId);
+  await updateDoc(expenseRef, data);
+};
+
+// Delete expense
+export const deleteExpense = async (expenseId: string) => {
+  await deleteDoc(doc(db, 'expenses', expenseId));
 };
 
 // Get society settings

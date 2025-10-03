@@ -7,28 +7,28 @@
 - **Real-time**: onSnapshot for live data sync across all components with instant updates.
 - **Mobile Responsive**: Complete mobile-first refactoring with dedicated mobile components, bottom navigation, header with hamburger menu, neumorphism-style cards, and app-like UX.
 - **UI Enhancements**: Advanced animations, hover effects, gradient shifts, smooth transitions, professional styling, and mobile-optimized typography.
-- **Recent Updates**: Full mobile UI overhaul with separate mobile layouts, charts responsiveness, safe area padding, and touch-friendly interactions.
+- **Recent Updates**: Full mobile UI overhaul with separate mobile layouts, charts responsiveness, safe area padding, touch-friendly interactions, enhanced expense management with real-time editing, year filtering, and advanced category operations.
 - **Files Modified**:
   - src/components/LoginForm.tsx: Dual-mode login ("Login" vs "Request to Join") with approval workflow and mobile variant.
   - src/lib/firebase.ts: Firebase config with environment variables.
   - src/context/UserContext.tsx: Enhanced state management with real-time approval/dismissal tracking.
-  - src/lib/firestoreServices.ts: Complete CRUD operations with real-time listeners.
+  - src/lib/firestoreServices.ts: Complete CRUD operations with real-time listeners, added updateExpense and deleteExpense functions.
   - src/components/admin/MembersManagement.tsx: Member management with approve/dismiss functionality.
-  - src/components/AdminDashboard.tsx: Reorganized dashboard with square action cards, live stats, and mobile view.
+  - src/components/AdminDashboard.tsx: Reorganized dashboard with square action cards, live stats, mobile view, reports tab with visualizations dropdown, functional settings save button, responsive notices page, and logout in hamburger menu.
   - src/components/admin/BillManagement.tsx: Bill generation and management (target removed, sends to all).
-  - src/components/admin/ExpenseManagement.tsx: Real-time expense tracking and management.
+  - src/components/admin/ExpenseManagement.tsx: Real-time expense tracking with advanced filtering (search, category, month, year), category-wise editing/deletion with month-specific operations, and functional year dropdown (2020-current year).
   - src/components/admin/SocietySettings.tsx: Admin settings with password update functionality.
   - src/components/Navigation.tsx: Responsive navigation (desktop sidebar + mobile bottom navbar + hamburger menu).
   - src/pages/Index.tsx: Main router with mobile-responsive layout and approval flow.
   - src/components/MemberDashboard.tsx: Real data dashboard with payment processing, profile management, and mobile view.
   - src/components/PendingApproval.tsx: Enhanced approval waiting page with real-time status updates.
   - src/components/mobile/MobileLayout.tsx: Mobile app wrapper with safe area padding.
-  - src/components/mobile/MobileBottomNav.tsx: Bottom navigation for mobile with 5 tabs.
-  - src/components/mobile/MobileHeader.tsx: Top header with hamburger menu for mobile.
+  - src/components/mobile/MobileBottomNav.tsx: Bottom navigation for mobile with 5 tabs and logout in hamburger menu.
+  - src/components/mobile/MobileHeader.tsx: Simplified top header for mobile (hamburger menu removed).
   - src/components/ui/MobileCard.tsx: Neumorphism-style cards for mobile.
   - src/index.css: Custom CSS utilities for animations, mobile responsiveness, and enhanced styling.
   - src/App.css: Mobile-specific overflow-x hidden rules.
-- **UI Features**: Mobile-responsive design, smooth animations, professional styling, no horizontal scroll, touch-friendly interface, neumorphism cards, bottom navigation.
+- **UI Features**: Mobile-responsive design, smooth animations, professional styling, no horizontal scroll, touch-friendly interface, neumorphism cards, bottom navigation, advanced filtering with year dropdown, real-time expense editing.
 
 ## What's Working
 - **Authentication**: Login as admin (admin@gmail.com / admin@1234) or member. New members use "Request to Join" with approval workflow.
@@ -41,8 +41,8 @@
   - Members Management: Approve/dismiss new requests, manage existing members with real-time updates.
   - Bills Management: Generate bills for all members, track payments, mark as paid with success notifications.
   - Notices Management: Send announcements to all or specific members.
-  - Expense Management: Real-time expense tracking and management with live data.
-  - Financial Reports: Generate comprehensive reports.
+  - Expense Management: Real-time expense tracking with advanced filtering (search, category, month, year), category-wise editing/deletion with month-specific operations, and functional year dropdown (2020-current year).
+  - Financial Reports: Generate comprehensive reports with visualizations dropdown and month filtering.
 - **Member Features**:
   - Dashboard with personal bills, notices, expenses, and profile management.
   - Pay Now buttons for pending bills with success/failure notifications.
@@ -73,6 +73,7 @@
 - **Settings Save Button**: Connected save settings functionality in mobile financial settings.
 - **Notices Page Layout**: Improved responsive layout and added actual notice management content for mobile.
 - **Navigation Improvements**: Added logout to bottom hamburger menu and removed redundant top hamburger.
+- **Expense Management Enhancements**: Added real-time expense editing with month-specific operations, year filtering dropdown (2020-current), and advanced category management with conditional edit/delete based on filter selections.
 
 ## Your Actions Taken
 - Enabled Firebase Auth (Email/Password) with user registration and approval workflow.

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,9 +7,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  Receipt, 
-  Plus, 
+import {
+  Receipt,
+  Plus,
   Search,
   Calendar,
   TrendingUp,
@@ -21,9 +21,11 @@ import {
   Droplets,
   Wrench,
   Truck,
-  Users2
+  Users2,
+  Edit,
+  Trash2
 } from 'lucide-react';
-import { getAllExpenses, addExpense, type Expense } from '@/lib/firestoreServices';
+import { getAllExpenses, addExpense, updateExpense, deleteExpense, type Expense } from '@/lib/firestoreServices';
 import { useToast } from '@/hooks/use-toast';
 import MobileCard from '@/components/ui/MobileCard';
 import { motion } from 'framer-motion';
@@ -44,7 +46,10 @@ export const ExpenseManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [monthFilter, setMonthFilter] = useState<string>('all');
+  const [yearFilter, setYearFilter] = useState<string>('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [isEditExpenseDialogOpen, setIsEditExpenseDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -78,6 +83,73 @@ export const ExpenseManagement = () => {
     });
   };
 
+  const handleEditCategory = (category: any) => {
+    // Find the first expense in this category for the selected filters to edit
+    const expensesInCategory = expenses.filter(exp =>
+      exp.category.toLowerCase() === category.value.toLowerCase() &&
+      (monthFilter === 'all' || exp.month === monthFilter) &&
+      (yearFilter === 'all' || exp.year.toString() === yearFilter)
+    );
+
+    if (expensesInCategory.length > 0) {
+      setEditingExpense(expensesInCategory[0]);
+      setIsEditExpenseDialogOpen(true);
+    } else {
+      const filterText = [];
+      if (monthFilter !== 'all') filterText.push(monthFilter);
+      if (yearFilter !== 'all') filterText.push(yearFilter);
+      const filterDescription = filterText.length > 0 ? ` for ${filterText.join(' ')}` : '';
+
+      toast({
+        title: "No expenses found",
+        description: `No expenses found in "${category.label}" category${filterDescription}.`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteCategory = async (categoryValue: string) => {
+    const filterParts = [];
+    if (monthFilter !== 'all') filterParts.push(`month of ${monthFilter}`);
+    if (yearFilter !== 'all') filterParts.push(`year ${yearFilter}`);
+    const filterText = filterParts.length > 0 ? filterParts.join(' and ') : 'all time';
+
+    if (window.confirm(`Are you sure you want to delete all expenses in the "${categoryValue}" category for ${filterText}? This action cannot be undone.`)) {
+      try {
+        // Get all expenses in this category for the selected filters
+        const expensesToDelete = expenses.filter(exp =>
+          exp.category.toLowerCase() === categoryValue.toLowerCase() &&
+          (monthFilter === 'all' || exp.month === monthFilter) &&
+          (yearFilter === 'all' || exp.year.toString() === yearFilter)
+        );
+
+        if (expensesToDelete.length === 0) {
+          toast({
+            title: "No expenses found",
+            description: `No expenses found in the "${categoryValue}" category for ${filterText}.`,
+          });
+          return;
+        }
+
+        // Delete all expenses in this category for the selected filters
+        const deletePromises = expensesToDelete.map(expense => deleteExpense(expense.id));
+        await Promise.all(deletePromises);
+
+        toast({
+          title: "Expenses Deleted",
+          description: `Successfully deleted ${expensesToDelete.length} expense(s) in "${categoryValue}" category.`,
+        });
+
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to delete category expenses.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -92,23 +164,63 @@ export const ExpenseManagement = () => {
         return;
       }
 
-      addExpense({
-        category: formData.category,
-        amount,
-        vendor: formData.vendor,
-        description: formData.description || undefined,
-        month: formData.month,
-        year: parseInt(formData.year),
-        target: formData.target
-      });
+      // Validate month selection
+      if (formData.month !== 'ALL' && !months.includes(formData.month)) {
+        toast({
+          title: "Error",
+          description: "Please select a valid month.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      toast({
-        title: "Expense Added",
-        description: "Expense has been recorded successfully.",
-      });
+      if (formData.month === 'ALL') {
+        // Add expense for all months
+        const expensePromises = months.map(month =>
+          addExpense({
+            category: formData.category,
+            amount,
+            vendor: formData.vendor,
+            description: formData.description || undefined,
+            month,
+            year: parseInt(formData.year),
+            target: formData.target
+          })
+        );
+        Promise.all(expensePromises).then(() => {
+          toast({
+            title: "Expenses Added",
+            description: "Expense has been recorded for all 12 months successfully.",
+          });
+          setIsAddDialogOpen(false);
+          resetForm();
+        }).catch((error) => {
+          toast({
+            title: "Error",
+            description: "An error occurred while adding the expenses.",
+            variant: "destructive",
+          });
+        });
+      } else {
+        // Add expense for single month
+        addExpense({
+          category: formData.category,
+          amount,
+          vendor: formData.vendor,
+          description: formData.description || undefined,
+          month: formData.month,
+          year: parseInt(formData.year),
+          target: formData.target
+        });
 
-      setIsAddDialogOpen(false);
-      resetForm();
+        toast({
+          title: "Expense Added",
+          description: "Expense has been recorded successfully.",
+        });
+
+        setIsAddDialogOpen(false);
+        resetForm();
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -128,7 +240,9 @@ export const ExpenseManagement = () => {
 
     const matchesMonth = monthFilter === 'all' || expense.month === monthFilter;
 
-    return matchesSearch && matchesCategory && matchesMonth;
+    const matchesYear = yearFilter === 'all' || expense.year.toString() === yearFilter;
+
+    return matchesSearch && matchesCategory && matchesMonth && matchesYear;
   });
 
   // Calculate stats
@@ -285,12 +399,17 @@ export const ExpenseManagement = () => {
                     <div>
                       <Label htmlFor="month">Month</Label>
                       <Select value={formData.month} onValueChange={(value) => setFormData({...formData, month: value})}>
-                        <SelectTrigger>
-                          <SelectValue />
+                        <SelectTrigger className="transition-all duration-200 hover:border-orange-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200">
+                          <SelectValue placeholder="Select month" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-white border border-gray-200 shadow-lg rounded-lg animate-in fade-in-0 zoom-in-95">
+                          <SelectItem value="ALL" className="hover:bg-orange-50 focus:bg-orange-50 cursor-pointer transition-colors">
+                            <span className="font-medium text-orange-600">ALL Months</span>
+                          </SelectItem>
                           {months.map(month => (
-                            <SelectItem key={month} value={month}>{month}</SelectItem>
+                            <SelectItem key={month} value={month} className="hover:bg-gray-50 focus:bg-gray-50 cursor-pointer transition-colors">
+                              {month}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -347,9 +466,9 @@ export const ExpenseManagement = () => {
                   className="pl-10"
                 />
               </div>
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="flex-1">
+                  <SelectTrigger>
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -362,13 +481,24 @@ export const ExpenseManagement = () => {
                   </SelectContent>
                 </Select>
                 <Select value={monthFilter} onValueChange={setMonthFilter}>
-                  <SelectTrigger className="flex-1">
+                  <SelectTrigger>
                     <SelectValue placeholder="Month" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Months</SelectItem>
                     {months.map(month => (
                       <SelectItem key={month} value={month}>{month}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={yearFilter} onValueChange={setYearFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Years</SelectItem>
+                    {Array.from({ length: new Date().getFullYear() - 2020 + 1 }, (_, i) => 2020 + i).map(year => (
+                      <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -489,12 +619,17 @@ export const ExpenseManagement = () => {
                 <div>
                   <Label htmlFor="month">Month</Label>
                   <Select value={formData.month} onValueChange={(value) => setFormData({...formData, month: value})}>
-                    <SelectTrigger>
-                      <SelectValue />
+                    <SelectTrigger className="transition-all duration-200 hover:border-orange-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200">
+                      <SelectValue placeholder="Select month" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white border border-gray-200 shadow-lg rounded-lg animate-in fade-in-0 zoom-in-95">
+                      <SelectItem value="ALL" className="hover:bg-orange-50 focus:bg-orange-50 cursor-pointer transition-colors">
+                        <span className="font-medium text-orange-600">ALL Months</span>
+                      </SelectItem>
                       {months.map(month => (
-                        <SelectItem key={month} value={month}>{month}</SelectItem>
+                        <SelectItem key={month} value={month} className="hover:bg-gray-50 focus:bg-gray-50 cursor-pointer transition-colors">
+                          {month}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -610,14 +745,39 @@ export const ExpenseManagement = () => {
           {categoryBreakdown.map((category) => {
             const IconComponent = category.icon;
             return (
-              <div key={category.value} className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
+              <div key={category.value} className="group relative flex items-center gap-3 p-3 rounded-xl bg-muted/50 hover:bg-muted/70 transition-all duration-200 border border-transparent hover:border-gray-200">
                 <div className={`w-10 h-10 ${category.color} rounded-xl flex items-center justify-center`}>
                   <IconComponent className="w-5 h-5 text-white" />
                 </div>
-                <div>
+                <div className="flex-1">
                   <p className="text-sm font-medium">{category.label}</p>
                   <p className="text-lg font-bold">₹{category.amount.toLocaleString()}</p>
                   <p className="text-xs text-muted-foreground">{category.count} expenses</p>
+                </div>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  {monthFilter !== 'all' && (
+                    <>
+                      <button
+                        onClick={() => handleEditCategory(category)}
+                        className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-600 hover:text-blue-700 transition-colors"
+                        title="Edit category details"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteCategory(category.value)}
+                        className="p-1.5 rounded-lg hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors"
+                        title="Delete all expenses in this category for selected month"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
+                  {monthFilter === 'all' && (
+                    <div className="text-xs text-muted-foreground px-2 py-1 bg-gray-100 rounded">
+                      Select specific month to edit
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -658,6 +818,17 @@ export const ExpenseManagement = () => {
               <SelectItem value="all">All Months</SelectItem>
               {months.map(month => (
                 <SelectItem key={month} value={month}>{month}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={yearFilter} onValueChange={setYearFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Filter by year" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Years</SelectItem>
+              {Array.from({ length: new Date().getFullYear() - 2020 + 1 }, (_, i) => 2020 + i).map(year => (
+                <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -710,6 +881,107 @@ export const ExpenseManagement = () => {
           </div>
         )}
       </Card>
+
+      {/* Edit Expense Dialog */}
+      <Dialog open={isEditExpenseDialogOpen} onOpenChange={setIsEditExpenseDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Expense</DialogTitle>
+          </DialogHeader>
+          {editingExpense && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                <div className={`w-10 h-10 ${getCategoryColor(editingExpense.category)} rounded-xl flex items-center justify-center`}>
+                  {React.createElement(getCategoryIcon(editingExpense.category), {
+                    className: "w-5 h-5 text-white"
+                  })}
+                </div>
+                <div>
+                  <p className="font-medium">{editingExpense.description || editingExpense.category}</p>
+                  <p className="text-sm text-muted-foreground">{editingExpense.vendor} • {editingExpense.month} {editingExpense.year}</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="edit-amount">Amount (₹)</Label>
+                  <Input
+                    id="edit-amount"
+                    type="number"
+                    defaultValue={editingExpense.amount}
+                    onChange={(e) => {
+                      const newAmount = parseFloat(e.target.value);
+                      if (!isNaN(newAmount) && newAmount >= 0) {
+                        setEditingExpense({...editingExpense, amount: newAmount});
+                      }
+                    }}
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-description">Description</Label>
+                  <Textarea
+                    id="edit-description"
+                    defaultValue={editingExpense.description || ''}
+                    onChange={(e) => setEditingExpense({...editingExpense, description: e.target.value})}
+                    placeholder="Enter expense description"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-vendor">Vendor/Payee</Label>
+                  <Input
+                    id="edit-vendor"
+                    defaultValue={editingExpense.vendor}
+                    onChange={(e) => setEditingExpense({...editingExpense, vendor: e.target.value})}
+                    placeholder="Enter vendor name"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={async () => {
+                    try {
+                      await updateExpense(editingExpense.id, {
+                        amount: editingExpense.amount,
+                        description: editingExpense.description,
+                        vendor: editingExpense.vendor
+                      });
+                      toast({
+                        title: "Expense Updated",
+                        description: "Expense details have been updated successfully.",
+                      });
+                      setIsEditExpenseDialogOpen(false);
+                      setEditingExpense(null);
+                    } catch (error) {
+                      toast({
+                        title: "Error",
+                        description: "Failed to update expense.",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                >
+                  Update Expense
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsEditExpenseDialogOpen(false);
+                    setEditingExpense(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
     </>

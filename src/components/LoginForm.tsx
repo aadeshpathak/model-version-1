@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useUser } from '@/context/UserContext';
+import { useToast } from '@/hooks/use-toast';
 import { auth, db } from '@/lib/firebase';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -67,6 +68,7 @@ const useTypingAnimation = (texts: string[], speed: number = 100) => {
 
 export const LoginForm = () => {
   const { handleLogin } = useUser();
+  const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -129,8 +131,25 @@ export const LoginForm = () => {
           handleLogin(role, email, userCredential.user.uid, approved, dismissed);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Auth error:', error);
+      let errorMessage = 'An error occurred during authentication';
+
+      // Handle specific Firebase auth errors
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        errorMessage = 'Invalid email or password';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed attempts. Please try again later';
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = 'Network error. Please check your connection';
+      }
+
+      toast({
+        title: "Authentication Failed",
+        description: errorMessage,
+        variant: "destructive",
+        duration: 3000,
+      });
     }
     setIsLoading(false);
   };

@@ -15,7 +15,6 @@ const MobileBottomNav: React.FC = () => {
         { id: 'bills', label: 'Bills', icon: FileText },
         { id: 'expenses', label: 'Expenses', icon: CreditCard },
         { id: 'reports', label: 'Reports', icon: BarChart3 },
-        { id: 'notices', label: 'Notices', icon: Bell },
         { id: 'settings', label: 'Settings', icon: Settings },
       ];
     } else {
@@ -185,7 +184,7 @@ const MobileBottomNav: React.FC = () => {
                   className="mt-6 pt-4 border-t border-gray-100"
                 >
                   <h4 className="text-sm font-semibold text-gray-900 mb-3">Quick Actions</h4>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     <motion.button
                       className="flex flex-col items-center gap-2 p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border border-green-200 hover:shadow-md transition-all"
                       whileTap={{ scale: 0.95 }}
@@ -196,17 +195,6 @@ const MobileBottomNav: React.FC = () => {
                     >
                       <Home size={20} className="text-green-600" />
                       <span className="text-xs font-medium text-green-900">Dashboard</span>
-                    </motion.button>
-                    <motion.button
-                      className="flex flex-col items-center gap-2 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-200 hover:shadow-md transition-all"
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => {
-                        setCurrentView('settings');
-                        setIsDrawerOpen(false);
-                      }}
-                    >
-                      <Settings size={20} className="text-blue-600" />
-                      <span className="text-xs font-medium text-blue-900">Settings</span>
                     </motion.button>
                     <motion.button
                       className="flex flex-col items-center gap-2 p-4 bg-gradient-to-br from-red-50 to-pink-50 rounded-2xl border border-red-200 hover:shadow-md transition-all"

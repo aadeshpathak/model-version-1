@@ -26,7 +26,13 @@ import {
   Receipt,
   TrendingUp,
   Activity,
-  Zap
+  Zap,
+  Sun,
+  Moon,
+  Star,
+  Award,
+  Target,
+  Sparkles
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -149,6 +155,22 @@ export const MemberDashboard = () => {
     }
   };
 
+  const getTimeBasedGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return { greeting: 'Good morning', icon: Sun, color: 'text-yellow-500' };
+    if (hour < 17) return { greeting: 'Good afternoon', icon: Sun, color: 'text-orange-500' };
+    return { greeting: 'Good evening', icon: Moon, color: 'text-indigo-500' };
+  };
+
+  const getCurrentDate = () => {
+    return new Date().toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -164,76 +186,259 @@ export const MemberDashboard = () => {
   return (
     <>
       {/* Mobile Dashboard */}
-      <div className="md:hidden min-h-screen bg-white overflow-x-hidden">
-        {/* Header */}
+      <div className="md:hidden min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 overflow-x-hidden">
+        {/* Modern Hero Header */}
         <motion.div
-          className="bg-white shadow-sm p-6 border-b"
-          initial={{ opacity: 0, y: -10 }}
+          className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 px-6 pt-16 pb-8 rounded-b-3xl shadow-2xl"
+          initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.5 }}
         >
-          <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-sm text-gray-600">Welcome back, {memberData.name}</p>
+          {/* Animated Background Elements */}
+          <div className="absolute inset-0 bg-black/10"></div>
+          <div className="absolute -top-20 -right-20 w-32 h-32 bg-white/10 rounded-full blur-2xl animate-pulse"></div>
+          <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-white/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-60 h-60 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse delay-500"></div>
+
+          <div className="relative z-10">
+            {/* Time-based Greeting */}
+            <motion.div
+              className="flex items-center gap-2 mb-4"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              {(() => {
+                const { greeting, icon: Icon, color } = getTimeBasedGreeting();
+                return (
+                  <>
+                    <div className={`w-8 h-8 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center ${color}`}>
+                      <Icon className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-white/90 text-sm font-medium">{greeting}!</span>
+                  </>
+                );
+              })()}
+            </motion.div>
+
+            {/* User Info */}
+            <motion.div
+              className="flex items-center gap-4 mb-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-lg">
+                <User className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-white mb-1">Welcome back,</h1>
+                <p className="text-lg font-semibold text-white">{memberData.name}</p>
+                <p className="text-indigo-100 text-sm flex items-center gap-1">
+                  <Home className="w-3 h-3" />
+                  Flat {memberData.flatNumber}
+                </p>
+              </div>
+            </motion.div>
+
+            {/* Quick Stats in Header */}
+            <motion.div
+              className="grid grid-cols-3 gap-3"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-3 text-white text-center">
+                <div className="text-lg font-bold">₹{(bills.filter(b => b.status === 'paid').reduce((sum, b) => sum + (b.amount || 0), 0) / 1000).toFixed(0)}K</div>
+                <div className="text-xs text-white/80">Paid</div>
+              </div>
+              <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-3 text-white text-center">
+                <div className="text-lg font-bold">{memberData.pendingAmount > 0 ? 'Due' : 'Clear'}</div>
+                <div className="text-xs text-white/80">Status</div>
+              </div>
+              <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-3 text-white text-center">
+                <div className="text-lg font-bold">{memberData.notices.length}</div>
+                <div className="text-xs text-white/80">Notices</div>
+              </div>
+            </motion.div>
+
+            {/* Achievement Badges */}
+            <motion.div
+              className="flex items-center gap-2 mt-4"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.5 }}
+            >
+              <div className="flex items-center gap-1 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1">
+                <Star className="w-3 h-3 text-yellow-300" />
+                <span className="text-xs text-white font-medium">12 Month Streak</span>
+              </div>
+              <div className="flex items-center gap-1 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1">
+                <Award className="w-3 h-3 text-green-300" />
+                <span className="text-xs text-white font-medium">Top Payer</span>
+              </div>
+            </motion.div>
+          </div>
         </motion.div>
 
-        <div className="p-4 space-y-6 pb-24">
-          {/* Stats Carousel */}
+        <div className="px-6 pb-24 pt-6 space-y-6">
+          {/* Enhanced Stats Overview */}
           <motion.div
-            className="overflow-x-auto pb-2"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.1, duration: 0.4 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.5 }}
           >
-            <div className="flex gap-4 w-max">
-              <MobileCard className="w-32 text-center flex-shrink-0">
-                <div className="text-xl font-bold text-red-600">₹{memberData.pendingAmount.toLocaleString()}</div>
-                <div className="text-xs text-gray-600 mt-1">Pending</div>
-              </MobileCard>
-              <MobileCard className="w-32 text-center flex-shrink-0">
-                <div className="text-xl font-bold text-green-600">₹{bills.filter(b => b.status === 'paid').reduce((sum, b) => sum + (b.amount || 0), 0).toLocaleString()}</div>
-                <div className="text-xs text-gray-600 mt-1">Paid</div>
-              </MobileCard>
-              <MobileCard className="w-32 text-center flex-shrink-0">
-                <div className="text-xl font-bold text-blue-600">{memberData.nextDueDate}</div>
-                <div className="text-xs text-gray-600 mt-1">Next Due</div>
-              </MobileCard>
-              <MobileCard className="w-32 text-center flex-shrink-0">
-                <div className="text-xl font-bold text-purple-600">{memberData.notices.length}</div>
-                <div className="text-xs text-gray-600 mt-1">Notices</div>
-              </MobileCard>
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Activity className="w-5 h-5 text-blue-600" />
+              Overview
+            </h2>
+            <div className="grid grid-cols-2 gap-4">
+              <motion.div
+                className="bg-gradient-to-br from-red-50 to-orange-50 p-4 rounded-2xl border border-red-100"
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-orange-500 rounded-xl flex items-center justify-center">
+                    <IndianRupee className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-red-700 font-medium">Pending Amount</p>
+                    <p className="text-xl font-bold text-red-900">₹{memberData.pendingAmount.toLocaleString()}</p>
+                  </div>
+                </div>
+                <div className="text-xs text-red-600">Requires immediate attention</div>
+              </motion.div>
+
+              <motion.div
+                className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-2xl border border-green-100"
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
+                    <CheckCircle2 className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-green-700 font-medium">Paid This Year</p>
+                    <p className="text-xl font-bold text-green-900">₹{(bills.filter(b => b.status === 'paid').reduce((sum, b) => sum + (b.amount || 0), 0) / 1000).toFixed(0)}K</p>
+                  </div>
+                </div>
+                <div className="text-xs text-green-600">Excellent payment record</div>
+              </motion.div>
+
+              <motion.div
+                className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-2xl border border-blue-100"
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center">
+                    <Calendar className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-blue-700 font-medium">Next Due Date</p>
+                    <p className="text-lg font-bold text-blue-900">{memberData.nextDueDate}</p>
+                  </div>
+                </div>
+                <div className="text-xs text-blue-600">Payment deadline</div>
+              </motion.div>
+
+              <motion.div
+                className="bg-gradient-to-br from-purple-50 to-pink-50 p-4 rounded-2xl border border-purple-100"
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                    <Bell className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-purple-700 font-medium">New Notices</p>
+                    <p className="text-xl font-bold text-purple-900">{memberData.notices.length}</p>
+                  </div>
+                </div>
+                <div className="text-xs text-purple-600">Unread announcements</div>
+              </motion.div>
             </div>
           </motion.div>
 
-          {/* Quick Actions Carousel */}
+          {/* Enhanced Quick Actions */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.4 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
           >
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">Quick Actions</h2>
-            <div className="overflow-x-auto pb-2">
-              <div className="flex gap-3 w-max">
-                <motion.button
-                  className="bg-blue-500 text-white p-4 rounded-2xl font-medium text-center shadow-lg min-w-[120px] flex-shrink-0"
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setCurrentView('myBills')}
-                >
-                  <div className="text-sm">View Bills</div>
-                </motion.button>
-                <motion.button
-                  className="bg-green-500 text-white p-4 rounded-2xl font-medium text-center shadow-lg min-w-[120px] flex-shrink-0"
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setCurrentView('payments')}
-                >
-                  <div className="text-sm">Payments</div>
-                </motion.button>
-                <motion.button
-                  className="bg-purple-500 text-white p-4 rounded-2xl font-medium text-center shadow-lg min-w-[120px] flex-shrink-0"
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setCurrentView('notices')}
-                >
-                  <div className="text-sm">Notices</div>
-                </motion.button>
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Zap className="w-5 h-5 text-yellow-600" />
+              Quick Actions
+            </h2>
+            <div className="grid grid-cols-3 gap-3">
+              <motion.button
+                className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 rounded-2xl font-medium text-center shadow-lg hover:shadow-xl transition-all duration-300"
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setCurrentView('myBills')}
+              >
+                <Receipt className="w-6 h-6 mx-auto mb-2" />
+                <div className="text-xs font-semibold">View Bills</div>
+              </motion.button>
+              <motion.button
+                className="bg-gradient-to-br from-green-500 to-emerald-600 text-white p-4 rounded-2xl font-medium text-center shadow-lg hover:shadow-xl transition-all duration-300"
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setCurrentView('payments')}
+              >
+                <CreditCard className="w-6 h-6 mx-auto mb-2" />
+                <div className="text-xs font-semibold">Payments</div>
+              </motion.button>
+              <motion.button
+                className="bg-gradient-to-br from-purple-500 to-pink-600 text-white p-4 rounded-2xl font-medium text-center shadow-lg hover:shadow-xl transition-all duration-300"
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setCurrentView('notices')}
+              >
+                <Bell className="w-6 h-6 mx-auto mb-2" />
+                <div className="text-xs font-semibold">Notices</div>
+              </motion.button>
+            </div>
+          </motion.div>
+
+          {/* Payment Progress & Achievements */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25, duration: 0.5 }}
+          >
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Target className="w-5 h-5 text-green-600" />
+              Your Progress
+            </h2>
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-2xl border border-green-100">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-green-600" />
+                  <span className="font-semibold text-green-900">Payment Streak</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Star className="w-4 h-4 text-yellow-500" />
+                  <span className="text-sm font-bold text-green-900">12 Months</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-green-700">This Year's Progress</span>
+                  <span className="text-green-900 font-medium">85%</span>
+                </div>
+                <div className="bg-green-200 rounded-full h-3 overflow-hidden">
+                  <motion.div
+                    className="bg-gradient-to-r from-green-400 to-emerald-500 rounded-full h-3"
+                    initial={{ width: 0 }}
+                    animate={{ width: '85%' }}
+                    transition={{ delay: 0.5, duration: 1, ease: "easeOut" }}
+                  ></motion.div>
+                </div>
+                <p className="text-xs text-green-600">3 more payments to reach 100% completion</p>
               </div>
             </div>
           </motion.div>
