@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { getMemberBills, getMemberNotices, updateBill, addNotice, markNoticeAsRead, type Bill, type Notice } from '@/lib/firestoreServices';
+import { getMemberBills, getMemberNotices, updateBill, addNotice, markNoticeAsRead, markOverdueBills, type Bill, type Notice } from '@/lib/firestoreServices';
 import { Timestamp } from 'firebase/firestore';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -13,6 +13,7 @@ import { useSocietySettings } from '@/hooks/use-society-settings';
 import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { BillReceipt } from '@/components/BillReceipt';
+import { PaymentDialog } from '@/components/PaymentDialog';
 import { LoginForm } from '@/components/LoginForm';
 import { Navigation } from '@/components/Navigation';
 import { MobileNavbar } from '@/components/MobileNavbar';
@@ -136,6 +137,11 @@ const Index = () => {
     bill: Bill | null;
   }>({ open: false, bill: null });
 
+  const [paymentDialog, setPaymentDialog] = useState<{
+    open: boolean;
+    bill: Bill | null;
+  }>({ open: false, bill: null });
+
   // Mark notices as read when current view is notices
   useEffect(() => {
     if (currentView === 'notices') {
@@ -150,6 +156,9 @@ const Index = () => {
 
   useEffect(() => {
     if (uid) {
+      // Mark overdue bills on app load
+      markOverdueBills();
+
       const unsubscribeBills = getMemberBills(uid, setBills);
       const unsubscribeNotices = getMemberNotices(uid, setNotices);
       return () => {
@@ -306,7 +315,7 @@ const Index = () => {
                     <div className="text-xs text-white/80">Pending</div>
                   </div>
                   <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-3 text-white text-center">
-                    <div className="text-lg font-bold">₹{bills.filter(b => b.status !== 'paid').reduce((sum, b) => sum + (b.amount || 0), 0).toLocaleString()}</div>
+                    <div className="text-lg font-bold">₹{bills.filter(b => b.status !== 'paid').reduce((sum, b) => sum + ((b.amount || 0) + (b.lateFee || 0)), 0).toLocaleString()}</div>
                     <div className="text-xs text-white/80">Due</div>
                   </div>
                 </motion.div>
@@ -361,7 +370,10 @@ const Index = () => {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => toast({ title: "Downloading receipt...", description: `Receipt ${bill.receiptNumber}` })}
+                                onClick={() => {
+                                  const updatedBill = bills.find(b => b.id === bill.id) || bill;
+                                  setReceiptDialog({ open: true, bill: updatedBill });
+                                }}
                                 className="text-xs"
                               >
                                 <span className="mr-1">📄</span>
@@ -372,28 +384,7 @@ const Index = () => {
                               <Button
                                 size="sm"
                                 className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white text-xs"
-                                onClick={async () => {
-                                  try {
-                                    const today = new Date().toISOString().split('T')[0];
-                                    const receiptNumber = `RC${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
-                                    await updateBill(bill.id, {
-                                      status: 'paid',
-                                      paidDate: today,
-                                      paymentMethod: 'Online',
-                                      receiptNumber
-                                    });
-                                    await addNotice({
-                                      title: `Bill Payment Received`,
-                                      message: `${userEmail} has paid ₹${bill.amount} for ${bill.month} ${bill.year}. Receipt: ${receiptNumber}`,
-                                      target: 'all',
-                                      sentBy: 'system',
-                                      sentAt: Timestamp.now()
-                                    });
-                                    toast({ title: "Payment Successful", description: `Bill paid successfully. Receipt: ${receiptNumber}` });
-                                  } catch (error) {
-                                    toast({ title: "Payment Failed", description: "Please try again.", variant: "destructive" });
-                                  }
-                                }}
+                                onClick={() => setPaymentDialog({ open: true, bill })}
                               >
                                 <span className="mr-1">💳</span>
                                 Pay Now
@@ -529,7 +520,10 @@ const Index = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => setReceiptDialog({ open: true, bill })}
+                              onClick={() => {
+                                const updatedBill = bills.find(b => b.id === bill.id) || bill;
+                                setReceiptDialog({ open: true, bill: updatedBill });
+                              }}
                               className="text-xs bg-white hover:bg-green-50 border-green-200"
                             >
                               <span className="mr-1">📄</span>
@@ -556,26 +550,6 @@ const Index = () => {
               )}
             </div>
 
-            {/* Receipt Dialog */}
-            <Dialog open={receiptDialog.open} onOpenChange={(open) => setReceiptDialog({ open, bill: null })}>
-              <DialogContent className="max-w-lg p-0">
-                <DialogHeader className="px-6 pt-6">
-                  <DialogTitle>Payment Receipt</DialogTitle>
-                </DialogHeader>
-                <div className="px-6 pb-6">
-                  {receiptDialog.bill && (
-                    <BillReceipt
-                      bill={receiptDialog.bill}
-                      member={{
-                        fullName: userData?.fullName || 'Member',
-                        flatNumber: userData?.flatNumber || 'N/A'
-                      }}
-                      societyName={societySettings.societyName || 'Society'}
-                    />
-                  )}
-                </div>
-              </DialogContent>
-            </Dialog>
           </div>
         );
       } else if (currentView === 'notices') {
@@ -649,7 +623,7 @@ const Index = () => {
               </div>
             </motion.div>
 
-            <div className="px-6 space-y-4">
+            <div className="px-6 space-y-4 pb-20">
               {sortedNotices.length > 0 ? sortedNotices.map((notice: Notice, index) => {
                 const isRead = notice.readBy?.includes(uid);
                 return (
@@ -1189,6 +1163,41 @@ const Index = () => {
         >
           {renderView()}
         </div>
+
+        {/* Receipt Dialog */}
+        <Dialog open={receiptDialog.open} onOpenChange={(open) => setReceiptDialog({ open, bill: null })}>
+          <DialogContent className="w-[90vw] max-w-md mx-auto p-0 max-h-[80vh] overflow-hidden">
+            <DialogHeader className="px-4 pt-4 sm:px-6 sm:pt-6">
+              <DialogTitle className="text-lg sm:text-xl">Payment Receipt</DialogTitle>
+            </DialogHeader>
+            <div className="px-4 pb-4 sm:px-6 sm:pb-6 max-h-[calc(80vh-80px)] overflow-y-auto">
+              {receiptDialog.bill && (
+                <BillReceipt
+                  bill={receiptDialog.bill}
+                  member={{
+                    fullName: userData?.fullName || 'Member',
+                    flatNumber: userData?.flatNumber || 'N/A'
+                  }}
+                  societyName={societySettings.societyName || 'Society'}
+                  onClose={() => setReceiptDialog({ open: false, bill: null })}
+                />
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Payment Dialog */}
+        <PaymentDialog
+          open={paymentDialog.open}
+          onOpenChange={(open) => setPaymentDialog({ open, bill: null })}
+          bill={paymentDialog.bill}
+          memberId={uid || ''}
+          memberEmail={userEmail}
+          onPaymentSuccess={() => {
+            // Bills will update via listener
+            setPaymentDialog({ open: false, bill: null });
+          }}
+        />
       </MobileLayout>
     );
   }
@@ -1216,6 +1225,40 @@ const Index = () => {
       <div className="lg:hidden">
         <Navigation />
       </div>
+
+      {/* Receipt Dialog */}
+      <Dialog open={receiptDialog.open} onOpenChange={(open) => setReceiptDialog({ open, bill: null })}>
+        <DialogContent className="max-w-lg p-0">
+          <DialogHeader className="px-6 pt-6">
+            <DialogTitle>Payment Receipt</DialogTitle>
+          </DialogHeader>
+          <div className="px-6 pb-6">
+            {receiptDialog.bill && (
+              <BillReceipt
+                bill={receiptDialog.bill}
+                member={{
+                  fullName: userData?.fullName || 'Member',
+                  flatNumber: userData?.flatNumber || 'N/A'
+                }}
+                societyName={societySettings.societyName || 'Society'}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Dialog */}
+      <PaymentDialog
+        open={paymentDialog.open}
+        onOpenChange={(open) => setPaymentDialog({ open, bill: null })}
+        bill={paymentDialog.bill}
+        memberId={uid || ''}
+        memberEmail={userEmail}
+        onPaymentSuccess={() => {
+          // Bills will update via listener
+          setPaymentDialog({ open: false, bill: null });
+        }}
+      />
 
       {/* Session Timeout Warning */}
       <SessionTimeoutWarning />

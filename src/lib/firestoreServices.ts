@@ -15,6 +15,7 @@ export interface User {
   dismissed: boolean;
   bannedUntil: TimestampType | null;
   lastLogin: TimestampType | null;
+  payments?: any[]; // Array of payment transactions
 }
 
 export interface Bill {
@@ -32,6 +33,15 @@ export interface Bill {
   lateFee?: number;
   isImported?: boolean;
   importBatchId?: string;
+  transactionId?: string;
+  transactionPaymentId?: string;
+  transactionOrderId?: string;
+  transactionSignature?: string;
+  transactionMethod?: string;
+  transactionBank?: string;
+  transactionWallet?: string;
+  transactionVpa?: string;
+  transactionAmount?: number;
 }
 
 export interface Notice {
@@ -417,6 +427,25 @@ export const getSocietySettings = (callback: (settings: any) => void) => {
       });
     }
   });
+};
+
+// Mark bills as overdue if due date has passed
+export const markOverdueBills = async () => {
+  const now = new Date();
+  const billsRef = collection(db, 'bills');
+  const overdueBillsQuery = query(
+    billsRef,
+    where('status', '==', 'pending'),
+    where('dueDate', '<', Timestamp.fromDate(now))
+  );
+
+  const snapshot = await getDocs(overdueBillsQuery);
+  const updatePromises = snapshot.docs.map(doc =>
+    updateDoc(doc.ref, { status: 'overdue' })
+  );
+
+  await Promise.all(updatePromises);
+  return snapshot.docs.length; // Return number of bills marked as overdue
 };
 
 // Add more functions as needed

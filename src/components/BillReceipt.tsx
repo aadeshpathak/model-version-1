@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { X } from 'lucide-react';
 
 interface BillReceiptProps {
   bill: {
@@ -11,12 +12,23 @@ interface BillReceiptProps {
     receiptNumber?: string;
     paidDate?: string;
     status: string;
+    paymentMethod?: string;
+    transactionId?: string;
+    transactionPaymentId?: string;
+    transactionOrderId?: string;
+    transactionSignature?: string;
+    transactionMethod?: string;
+    transactionBank?: string;
+    transactionWallet?: string;
+    transactionVpa?: string;
+    transactionAmount?: number;
   };
   member: {
     fullName: string;
     flatNumber: string;
   };
   societyName: string;
+  onClose?: () => void;
 }
 
 declare global {
@@ -25,7 +37,7 @@ declare global {
   }
 }
 
-export const BillReceipt: React.FC<BillReceiptProps> = ({ bill, member, societyName }) => {
+export const BillReceipt: React.FC<BillReceiptProps> = ({ bill, member, societyName, onClose }) => {
   const handleDownloadPDF = () => {
     const element = document.getElementById('receipt-content');
     if (element && window.html2pdf) {
@@ -50,14 +62,24 @@ export const BillReceipt: React.FC<BillReceiptProps> = ({ bill, member, societyN
 
   return (
     <div className="max-w-md mx-auto">
-      {/* Download Button */}
-      <div className="mb-4 text-center">
+      {/* Action Buttons */}
+      <div className="mb-4 flex gap-3 justify-center">
         <Button
           onClick={handleDownloadPDF}
-          className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 py-2 rounded-lg font-medium shadow-lg"
+          className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-4 py-2 rounded-lg font-medium shadow-lg"
         >
-          📄 Download Receipt
+          📄 Download
         </Button>
+        {onClose && (
+          <Button
+            onClick={onClose}
+            variant="outline"
+            className="px-4 py-2 rounded-lg font-medium border-gray-300 hover:bg-gray-50"
+          >
+            <X className="w-4 h-4 mr-2" />
+            Close
+          </Button>
+        )}
       </div>
 
       {/* Receipt Content */}
@@ -97,6 +119,10 @@ export const BillReceipt: React.FC<BillReceiptProps> = ({ bill, member, societyN
               {bill.paidDate ? new Date(bill.paidDate).toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN')}
             </span>
           </div>
+          <div className="flex justify-between">
+            <span className="font-medium text-gray-700">Payment Mode:</span>
+            <span className="text-gray-900">{bill.paymentMethod || 'Cash'}</span>
+          </div>
         </div>
 
         {/* Line Items */}
@@ -111,6 +137,49 @@ export const BillReceipt: React.FC<BillReceiptProps> = ({ bill, member, societyN
             ))}
           </div>
         </div>
+
+        {/* Transaction Details for Online Payments */}
+        {(bill.paymentMethod === 'UPI' || bill.paymentMethod === 'Online') && bill.transactionId && (
+          <div className="border-t border-gray-300 pt-4 mb-4">
+            <h3 className="font-semibold text-gray-800 mb-3 text-center">Transaction Details</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-700">Transaction ID:</span>
+                <span className="text-gray-900 font-mono text-xs">{bill.transactionId}</span>
+              </div>
+              {bill.transactionOrderId && (
+                <div className="flex justify-between">
+                  <span className="text-gray-700">Order ID:</span>
+                  <span className="text-gray-900 font-mono text-xs">{bill.transactionOrderId}</span>
+                </div>
+              )}
+              {bill.transactionMethod && (
+                <div className="flex justify-between">
+                  <span className="text-gray-700">Payment Method:</span>
+                  <span className="text-gray-900">{bill.transactionMethod}</span>
+                </div>
+              )}
+              {bill.transactionBank && (
+                <div className="flex justify-between">
+                  <span className="text-gray-700">Bank:</span>
+                  <span className="text-gray-900">{bill.transactionBank}</span>
+                </div>
+              )}
+              {bill.transactionWallet && (
+                <div className="flex justify-between">
+                  <span className="text-gray-700">Wallet:</span>
+                  <span className="text-gray-900">{bill.transactionWallet}</span>
+                </div>
+              )}
+              {bill.transactionVpa && (
+                <div className="flex justify-between">
+                  <span className="text-gray-700">UPI ID:</span>
+                  <span className="text-gray-900 font-mono text-xs">{bill.transactionVpa}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Total */}
         <div className="border-t-2 border-gray-400 pt-3">

@@ -1,29 +1,30 @@
 # Society Management App Context
 
 ## Current Setup
-- **Tech Stack**: React (TypeScript), Vite, shadcn/ui, Tailwind CSS, Firebase (Auth + Firestore), Framer Motion.
+- **Tech Stack**: React (TypeScript), Vite, shadcn/ui, Tailwind CSS, Firebase (Auth + Firestore), Framer Motion, Razorpay (Test Mode).
 - **Auth**: Firebase Email/Password. Role-based (admin/member) with approval workflow.
-- **Database**: Firestore with collections: users (role, approved, dismissed, bannedUntil, fullName, phone, flatNumber, lastLogin), bills (status, payment tracking), expenses, notices (target, readBy).
+- **Database**: Firestore with collections: users (role, approved, dismissed, bannedUntil, fullName, phone, flatNumber, lastLogin, payments), bills (status, payment tracking, lateFee), expenses, notices (target, readBy).
 - **Real-time**: onSnapshot for live data sync across all components with instant updates.
 - **Mobile Responsive**: Complete mobile-first refactoring with dedicated mobile components, bottom navigation, header with hamburger menu, neumorphism-style cards, and app-like UX.
 - **UI Enhancements**: Advanced animations, hover effects, gradient shifts, smooth transitions, professional styling, and mobile-optimized typography.
-- **Recent Updates**: Full mobile UI overhaul with separate mobile layouts, charts responsiveness, safe area padding, touch-friendly interactions, enhanced expense management with real-time editing, year filtering, advanced category operations, AI insights integration, and comprehensive Import Dataset feature with Firebase integration, smart categorization, multi-month bill creation, and progress tracking.
+- **Payment Gateway**: Razorpay test mode integration with Cash/Online payment options, transaction tracking, late fee calculation, and receipt generation.
+- **Recent Updates**: Full mobile UI overhaul with separate mobile layouts, charts responsiveness, safe area padding, touch-friendly interactions, enhanced expense management with real-time editing, year filtering, advanced category operations, AI insights integration, comprehensive Import Dataset feature with Firebase integration, smart categorization, multi-month bill creation, progress tracking, and complete payment gateway implementation with Razorpay test mode.
 - **Files Modified**:
   - src/components/LoginForm.tsx: Dual-mode login ("Login" vs "Request to Join") with approval workflow and mobile variant.
   - src/lib/firebase.ts: Firebase config with environment variables.
   - src/context/UserContext.tsx: Enhanced state management with real-time approval/dismissal tracking.
-  - src/lib/firestoreServices.ts: Complete CRUD operations with real-time listeners, added updateExpense and deleteExpense functions.
+  - src/lib/firestoreServices.ts: Complete CRUD operations with real-time listeners, added updateExpense and deleteExpense functions, added payments field to User interface.
   - src/components/admin/MembersManagement.tsx: Member management with approve/dismiss functionality.
   - src/components/AdminDashboard.tsx: Reorganized dashboard with square action cards, live stats, mobile view, reports tab with visualizations dropdown, functional settings save button, responsive notices page, and logout in hamburger menu.
   - src/components/admin/BillManagement.tsx: Bill generation and management (target removed, sends to all).
   - src/components/admin/ExpenseManagement.tsx: Real-time expense tracking with advanced filtering (search, category, month, year), category-wise editing/deletion with month-specific operations, functional year dropdown (2020-current year), comprehensive Import Dataset feature with smart categorization, multi-month bill creation, progress bars, and mobile-responsive import/delete functionality.
   - src/components/admin/SocietySettings.tsx: Admin settings with password update functionality.
-  - src/components/Navigation.tsx: Responsive navigation (desktop sidebar + mobile bottom navbar + hamburger menu).
-  - src/pages/Index.tsx: Main router with mobile-responsive layout and approval flow.
-  - src/components/MemberDashboard.tsx: Real data dashboard with payment processing, profile management, and mobile view.
+  - src/components/Navigation.tsx: Responsive navigation (desktop sidebar + mobile bottom navbar + hamburger menu), removed AI Insights from admin menu.
+  - src/pages/Index.tsx: Main router with mobile-responsive layout, approval flow, and properly sized receipt dialogs.
+  - src/components/MemberDashboard.tsx: Real data dashboard with payment processing, profile management, mobile view, and integrated PaymentDialog.
   - src/components/PendingApproval.tsx: Enhanced approval waiting page with real-time status updates.
   - src/components/mobile/MobileLayout.tsx: Mobile app wrapper with safe area padding.
-  - src/components/mobile/MobileBottomNav.tsx: Bottom navigation for mobile with 5 tabs and logout in hamburger menu.
+  - src/components/mobile/MobileBottomNav.tsx: Bottom navigation for mobile with 5 tabs, removed AI Insights from member navigation.
   - src/components/mobile/MobileHeader.tsx: Simplified top header for mobile (hamburger menu removed).
   - src/components/ui/MobileCard.tsx: Neumorphism-style cards for mobile.
   - src/index.css: Custom CSS utilities for animations, mobile responsiveness, and enhanced styling.
@@ -41,6 +42,9 @@
   - src/components/admin/MLInsights.tsx: Enhanced ML-powered analytics dashboard with 12 functional real-time ML components including expense forecasting, anomaly detection, member engagement analysis, payment behavior tracking, maintenance predictions, seasonal trends, cost analysis, risk assessment, ML configuration, real-time metrics, and predictive analytics.
   - src/components/AdminDashboard.tsx: Added "AI Insights" tab to admin dashboard for accessing ML-powered analytics.
   - server.js: Express.js server with Multer file upload, CSV/Excel/JSON parsing, Zod validation, Firebase integration, and comprehensive error handling for Import Dataset feature.
+  - index.html: Added Razorpay checkout script for payment gateway integration.
+  - .env: Added Razorpay test API keys (VITE_RAZORPAY_KEY_ID and VITE_RAZORPAY_KEY_SECRET).
+  - src/components/PaymentDialog.tsx: New component for payment processing with Cash/Online options, Razorpay integration, late fee calculation, and transaction storage.
 - **UI Features**: Mobile-responsive design, smooth animations, professional styling, no horizontal scroll, touch-friendly interface, neumorphism cards, bottom navigation, advanced filtering with year dropdown, real-time expense editing.
 
 ## What's Working
@@ -72,7 +76,11 @@
     - **Predictive Analytics**: Comprehensive forecasting for expenses and maintenance schedules
 - **Member Features**:
   - Dashboard with personal bills, notices, expenses, and profile management.
-  - Pay Now buttons for pending bills with success/failure notifications.
+  - **Payment Gateway**: Complete Razorpay test mode integration with Cash/Online payment options.
+  - **Pay Now Dialog**: Opens payment dialog with Cash (instant) and Online (UPI) options.
+  - **Late Fee Calculation**: Automatic inclusion of late fees in bill amounts.
+  - **Transaction Tracking**: Saves detailed payment information in member profiles.
+  - **Receipt Generation**: Automatic receipt creation with transaction details.
   - Real-time bill and notice updates.
   - Profile editing with success confirmations.
 - **Approval Workflow**: New members request to join → Real-time pending screen → Admin approves/dismisses → Instant member notifications.
@@ -142,7 +150,7 @@
 - (Indexes created automatically by Firestore as needed for queries).
 
 ## Pending
-- Payment gateway integration (Razorpay) - requires API keys.
+- **Payment Gateway**: Currently in Razorpay test mode - will be switched to live mode soon.
 - Advanced reporting features (currently has interface, needs backend implementation).
 - Email/SMS notifications (currently in-app only).
 - File upload for receipts/documents.
@@ -156,8 +164,9 @@
 5. **Test Approval Workflow**: As admin, go to Members → Pending Members → Approve the new member.
 6. **Test Real-time Updates**: Notice instant updates when approval status changes.
 7. **Test Mobile Navigation**: On mobile, use bottom navbar and hamburger menu for navigation.
-8. **Test Enhanced ML Features**: As admin, go to "AI Insights" tab to see 12 comprehensive ML-powered analytics including expense forecasting, anomaly detection, member engagement analysis, payment behavior tracking, maintenance predictions, and smart budgeting recommendations.
-9. **Test Import Dataset Feature**: As admin, go to Expense Management → Import Dataset to upload CSV/Excel/JSON files, test smart categorization, multi-month bill creation, progress bars, and delete functionality on both desktop and mobile.
+8. **Test Payment Gateway**: As a member, click "Pay Now" on pending bills, test both Cash and Online (UPI) payment options, verify transaction details in receipts.
+9. **Test Enhanced ML Features**: As admin, go to "AI Insights" tab to see 12 comprehensive ML-powered analytics including expense forecasting, anomaly detection, member engagement analysis, payment behavior tracking, maintenance predictions, and smart budgeting recommendations.
+10. **Test Import Dataset Feature**: As admin, go to Expense Management → Import Dataset to upload CSV/Excel/JSON files, test smart categorization, multi-month bill creation, progress bars, and delete functionality on both desktop and mobile.
 
 ## Installation Instructions for First-Time Setup
 
@@ -253,6 +262,7 @@ If you're cloning this repository from GitHub for the first time, follow these s
 - TanStack Query 5.83.0
 - Recharts 2.15.4
 - Chart.js 4.5.0
+- **Razorpay**: Payment gateway integration (checkout.js loaded via CDN)
 - **ML Libraries**:
   - TensorFlow.js (@tensorflow/tfjs) - Browser-based machine learning
   - TensorFlow.js Visualization (@tensorflow/tfjs-vis) - ML model visualization
@@ -270,4 +280,4 @@ If you're cloning this repository from GitHub for the first time, follow these s
   - UUID - Unique identifier generation
 
 ## Current Status
-The app is fully functional with professional UI/UX, complete mobile refactoring, real-time updates, and complete approval workflow. All syntax errors have been resolved and the development server runs successfully. Desktop views remain unchanged while mobile has been completely redesigned with modern app-like interface. For payment gateway integration (Razorpay), provide API keys when ready.
+The app is fully functional with professional UI/UX, complete mobile refactoring, real-time updates, complete approval workflow, and **Razorpay test mode payment gateway integration**. All syntax errors have been resolved and the development server runs successfully. Desktop views remain unchanged while mobile has been completely redesigned with modern app-like interface. Payment gateway is currently in test mode with full Cash/Online payment functionality - will be switched to live mode soon.

@@ -5,7 +5,9 @@ import MobileCard from '@/components/ui/MobileCard';
 import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/context/UserContext';
-import { getMemberBills, getMemberNotices, getMemberExpenses, updateBill, addNotice, getSocietySettings, markNoticeAsRead } from '@/lib/firestoreServices';
+import { getMemberBills, getMemberNotices, getMemberExpenses, updateBill, addNotice, getSocietySettings, markNoticeAsRead, markOverdueBills } from '@/lib/firestoreServices';
+import { BillReceipt } from '@/components/BillReceipt';
+import { PaymentDialog } from '@/components/PaymentDialog';
 import { Timestamp } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import {
@@ -36,6 +38,7 @@ import {
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { Bill, Notice } from '@/lib/firestoreServices';
 
 export const MemberDashboard = () => {
@@ -52,10 +55,22 @@ export const MemberDashboard = () => {
     phone: '',
     flatNumber: ''
   });
+  const [receiptDialog, setReceiptDialog] = useState<{
+    open: boolean;
+    bill: any;
+  }>({ open: false, bill: null });
+
+  const [paymentDialog, setPaymentDialog] = useState<{
+    open: boolean;
+    bill: any;
+  }>({ open: false, bill: null });
 
   useEffect(() => {
     if (uid) {
       setIsLoading(true);
+      // Mark overdue bills when dashboard loads
+      markOverdueBills();
+
       const unsubscribeBills = getMemberBills(uid, (b) => {
         setBills(b);
         setIsLoading(false);
@@ -124,7 +139,7 @@ export const MemberDashboard = () => {
   const memberData = {
     name: userData?.fullName || userEmail.split('@')[0],
     flatNumber: userData?.flatNumber || "Not set",
-    pendingAmount: bills.filter(b => b.status === 'pending').reduce((sum, b) => sum + (b.amount || 0), 0),
+    pendingAmount: bills.filter(b => b.status === 'pending').reduce((sum, b) => sum + ((b.amount || 0) + (b.lateFee || 0)), 0),
     nextDueDate: (() => {
       const pendingBill = bills.find(b => b.status === 'pending');
       if (pendingBill && pendingBill.dueDate) {
@@ -143,7 +158,7 @@ export const MemberDashboard = () => {
     currentBills: bills.slice(0, 2).map(b => ({
       id: b.id,
       month: b.dueDate?.toDate ? b.dueDate.toDate().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'N/A',
-      amount: b.amount || 0,
+      amount: (b.amount || 0) + (b.lateFee || 0),
       dueDate: b.dueDate?.toDate ? b.dueDate.toDate().toISOString().split('T')[0] : 'N/A',
       status: b.status
     })),
@@ -269,7 +284,7 @@ export const MemberDashboard = () => {
               transition={{ delay: 0.4 }}
             >
               <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-3 text-white text-center">
-                <div className="text-lg font-bold">₹{(bills.filter(b => b.status === 'paid').reduce((sum, b) => sum + (b.amount || 0), 0) / 1000).toFixed(0)}K</div>
+                <div className="text-lg font-bold">₹{(bills.filter(b => b.status === 'paid').reduce((sum, b) => sum + ((b.amount || 0) + (b.lateFee || 0)), 0) / 1000).toFixed(0)}K</div>
                 <div className="text-xs text-white/80">Paid</div>
               </div>
               <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-3 text-white text-center">
@@ -324,7 +339,7 @@ export const MemberDashboard = () => {
                   </div>
                   <div>
                     <p className="text-sm text-red-700 font-medium">Pending Amount</p>
-                    <p className="text-xl font-bold text-red-900">₹{memberData.pendingAmount.toLocaleString()}</p>
+                    <p className="text-xl font-bold text-red-900">₹{bills.filter(b => b.status === 'pending').reduce((sum, b) => sum + ((b.amount || 0) + (b.lateFee || 0)), 0).toLocaleString()}</p>
                   </div>
                 </div>
                 <div className="text-xs text-red-600">Requires immediate attention</div>
@@ -341,7 +356,7 @@ export const MemberDashboard = () => {
                   </div>
                   <div>
                     <p className="text-sm text-green-700 font-medium">Paid This Year</p>
-                    <p className="text-xl font-bold text-green-900">₹{(bills.filter(b => b.status === 'paid').reduce((sum, b) => sum + (b.amount || 0), 0) / 1000).toFixed(0)}K</p>
+                    <p className="text-xl font-bold text-green-900">₹{(bills.filter(b => b.status === 'paid').reduce((sum, b) => sum + ((b.amount || 0) + (b.lateFee || 0)), 0) / 1000).toFixed(0)}K</p>
                   </div>
                 </div>
                 <div className="text-xs text-green-600">Excellent payment record</div>
@@ -470,7 +485,7 @@ export const MemberDashboard = () => {
             transition={{ delay: 0.3, duration: 0.4 }}
           >
             <h2 className="text-lg font-semibold text-gray-900 mb-3">Current Bills</h2>
-            <div className="max-h-64 overflow-y-auto space-y-3">
+            <div className="max-h-64 overflow-y-auto space-y-3 pb-20">
               {memberData.currentBills.map((bill, index) => (
                 <motion.div
                   key={bill.id}
@@ -490,30 +505,21 @@ export const MemberDashboard = () => {
                           <motion.button
                             className="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm mt-2"
                             whileTap={{ scale: 0.95 }}
-                            onClick={async () => {
-                              try {
-                                const today = new Date().toISOString().split('T')[0];
-                                const receiptNumber = `RC${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
-                                await updateBill(bill.id, {
-                                  status: 'paid',
-                                  paidDate: today,
-                                  paymentMethod: 'Online',
-                                  receiptNumber
-                                });
-                                await addNotice({
-                                  title: `Bill Payment Received`,
-                                  message: `${userEmail} has paid ₹${bill.amount} for ${bill.month}. Receipt: ${receiptNumber}`,
-                                  target: 'all',
-                                  sentBy: 'system',
-                                  sentAt: Timestamp.now()
-                                });
-                                toast({ title: "Payment Successful", description: `Bill paid successfully. Receipt: ${receiptNumber}` });
-                              } catch (error) {
-                                toast({ title: "Payment Failed", description: "Please try again.", variant: "destructive" });
-                              }
-                            }}
+                            onClick={() => setPaymentDialog({ open: true, bill })}
                           >
                             Pay Now
+                          </motion.button>
+                        )}
+                        {bill.status === 'paid' && (
+                          <motion.button
+                            className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm mt-2"
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => {
+                              const updatedBill = bills.find(b => b.id === bill.id) || bill;
+                              setReceiptDialog({ open: true, bill: updatedBill });
+                            }}
+                          >
+                            View Receipt
                           </motion.button>
                         )}
                       </div>
@@ -601,7 +607,7 @@ export const MemberDashboard = () => {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <p className="text-white/80 text-sm font-medium">Outstanding Amount</p>
-                    <p className="text-3xl font-bold">₹{memberData.pendingAmount.toLocaleString()}</p>
+                    <p className="text-3xl font-bold">₹{bills.filter(b => b.status === 'pending').reduce((sum, b) => sum + ((b.amount || 0) + (b.lateFee || 0)), 0).toLocaleString()}</p>
                   </div>
                   <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-red-500 rounded-xl flex items-center justify-center">
                     <IndianRupee className="w-6 h-6 text-white" />
@@ -611,17 +617,17 @@ export const MemberDashboard = () => {
                   <div className="flex justify-between text-sm">
                     <span className="text-white/70">Payment Progress</span>
                     <span className="text-white font-medium">
-                      {memberData.pendingAmount > 0 ? '75%' : '100%'}
+                      {bills.filter(b => b.status === 'pending').reduce((sum, b) => sum + ((b.amount || 0) + (b.lateFee || 0)), 0) > 0 ? '75%' : '100%'}
                     </span>
                   </div>
                   <div className="bg-white/20 rounded-full h-2 overflow-hidden">
                     <div
                       className="bg-gradient-to-r from-green-400 to-blue-500 rounded-full h-2 transition-all duration-1000 ease-out"
-                      style={{ width: memberData.pendingAmount > 0 ? '75%' : '100%' }}
+                      style={{ width: bills.filter(b => b.status === 'pending').reduce((sum, b) => sum + ((b.amount || 0) + (b.lateFee || 0)), 0) > 0 ? '75%' : '100%' }}
                     ></div>
                   </div>
                   <p className="text-xs text-white/70">
-                    {memberData.pendingAmount > 0 ? '3 bills remaining' : 'All caught up!'}
+                    {bills.filter(b => b.status === 'pending').reduce((sum, b) => sum + ((b.amount || 0) + (b.lateFee || 0)), 0) > 0 ? '3 bills remaining' : 'All caught up!'}
                   </p>
                 </div>
               </div>
@@ -666,7 +672,7 @@ export const MemberDashboard = () => {
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-bold text-green-900">
-                    ₹{bills.filter(b => b.status === 'paid').reduce((sum, b) => sum + (b.amount || 0), 0).toLocaleString()}
+                    ₹{bills.filter(b => b.status === 'paid').reduce((sum, b) => sum + ((b.amount || 0) + (b.lateFee || 0)), 0).toLocaleString()}
                   </div>
                   <div className="text-sm text-green-700 font-medium">Paid This Year</div>
                 </div>
@@ -842,33 +848,21 @@ export const MemberDashboard = () => {
                         <Button
                           size="sm"
                           className="mt-2 bg-gradient-primary"
-                          onClick={async () => {
-                            try {
-                              const today = new Date().toISOString().split('T')[0];
-                              const receiptNumber = `RC${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
-                              await updateBill(bill.id, {
-                                status: 'paid',
-                                paidDate: today,
-                                paymentMethod: 'Online',
-                                receiptNumber
-                              });
-                              // Create notice for admin
-                              await addNotice({
-                                title: `Bill Payment Received`,
-                                message: `${userEmail} has paid ₹${bill.amount} for ${bill.month}. Receipt: ${receiptNumber}`,
-                                target: 'all',
-                                sentBy: 'system',
-                                sentAt: Timestamp.now()
-                              });
-                              toast({ title: "Payment Successful!", description: `Your bill has been paid. Receipt: ${receiptNumber}`, variant: "default" });
-                            } catch (error) {
-                              console.error('Payment error:', error);
-                              toast({ title: "Payment Failed", description: "Unable to process payment. Please contact admin.", variant: "destructive" });
-                            }
-                          }}
+                          onClick={() => setPaymentDialog({ open: true, bill })}
                         >
                           <CreditCard className="w-4 h-4 mr-1" />
                           Pay Now
+                        </Button>
+                      )}
+                      {bill.status === 'paid' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-2"
+                          onClick={() => setReceiptDialog({ open: true, bill })}
+                        >
+                          <Download className="w-4 h-4 mr-1" />
+                          View Receipt
                         </Button>
                       )}
                     </div>
@@ -931,9 +925,13 @@ export const MemberDashboard = () => {
                       <p className="font-bold text-lg">₹{payment.amount.toLocaleString()}</p>
                       <p className="text-xs text-success">{payment.receipt}</p>
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => toast({ title: "Downloading receipt...", description: "#RC001" })}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setReceiptDialog({ open: true, bill: bills.find(b => b.id === payment.id) })}
+                    >
                       <Download className="w-4 h-4 mr-1" />
-                      Receipt
+                      View Receipt
                     </Button>
                   </div>
                 </div>
@@ -942,6 +940,41 @@ export const MemberDashboard = () => {
           </div>
         </Card>
       </div>
+
+      {/* Receipt Dialog */}
+      <Dialog open={receiptDialog.open} onOpenChange={(open) => setReceiptDialog({ open, bill: null })}>
+        <DialogContent className="max-w-sm sm:max-w-md p-0">
+          <DialogHeader className="px-4 pt-4">
+            <DialogTitle>Payment Receipt</DialogTitle>
+          </DialogHeader>
+          <div className="px-4 pb-4">
+            {receiptDialog.bill && (
+              <BillReceipt
+                bill={receiptDialog.bill}
+                member={{
+                  fullName: userData?.fullName || userEmail.split('@')[0],
+                  flatNumber: userData?.flatNumber || 'Not set'
+                }}
+                societyName={societySettings.societyName || 'Society'}
+                onClose={() => setReceiptDialog({ open: false, bill: null })}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Dialog */}
+      <PaymentDialog
+        open={paymentDialog.open}
+        onOpenChange={(open) => setPaymentDialog({ open, bill: null })}
+        bill={paymentDialog.bill}
+        memberId={uid || ''}
+        memberEmail={userEmail}
+        onPaymentSuccess={() => {
+          // Bills will update via listener
+          setPaymentDialog({ open: false, bill: null });
+        }}
+      />
     </div>
     </>
   );

@@ -25,7 +25,6 @@ const MobileBottomNav: React.FC = () => {
         { id: 'payments', label: 'Payments', icon: CreditCard },
         { id: 'notices', label: 'Notices', icon: Bell },
         { id: 'profile', label: 'Profile', icon: User },
-        { id: 'aiInsights', label: 'AI Insights', icon: Brain },
       ];
     }
   };

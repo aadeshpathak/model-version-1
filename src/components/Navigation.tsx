@@ -13,7 +13,6 @@ export const Navigation = () => {
     { icon: Users, label: 'Members', key: 'members' },
     { icon: DollarSign, label: 'Bills', key: 'bills' },
     { icon: TrendingUp, label: 'Expenses', key: 'expenses' },
-    { icon: Brain, label: 'AI Insights', key: 'aiInsights' },
     { icon: Bell, label: 'Notices', key: 'notices' },
     { icon: FileText, label: 'Reports', key: 'reports' },
     { icon: Settings, label: 'Settings', key: 'settings' },

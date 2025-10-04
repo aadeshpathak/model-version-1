@@ -144,6 +144,16 @@ export const AdminDashboard = () => {
     };
   }, []);
 
+  // Update settingsForm when societySettings changes
+  useEffect(() => {
+    setSettingsForm({
+      societyName: societySettings.societyName || '',
+      maintenanceFee: societySettings.maintenanceFee || 2500,
+      lateFee: societySettings.lateFee || 100,
+      dueDay: societySettings.dueDay || 15
+    });
+  }, [societySettings]);
+
   useEffect(() => {
     setExpensesLoading(true);
     const expensesRef = collection(db, 'expenses');
@@ -816,11 +826,18 @@ export const AdminDashboard = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => setReceiptDialog({
-                            open: true,
-                            bill,
-                            member: { fullName: 'All Members', flatNumber: 'N/A' }
-                          })}
+                          onClick={() => {
+                            // Find the member for this bill
+                            const member = approvedMembers.find(m => m.id === bill.memberId);
+                            setReceiptDialog({
+                              open: true,
+                              bill,
+                              member: member ? {
+                                fullName: member.fullName,
+                                flatNumber: member.flatNumber
+                              } : { fullName: 'Unknown Member', flatNumber: 'N/A' }
+                            });
+                          }}
                           className="text-blue-600 hover:bg-blue-50 hover:text-blue-700"
                         >
                           <FileText className="w-4 h-4" />
@@ -1640,16 +1657,17 @@ export const AdminDashboard = () => {
 
       {/* Receipt Dialog */}
       <Dialog open={receiptDialog.open} onOpenChange={(open) => setReceiptDialog({ open, bill: null, member: null })}>
-        <DialogContent className="max-w-lg p-0">
-          <DialogHeader className="px-6 pt-6">
+        <DialogContent className="max-w-sm sm:max-w-md p-0">
+          <DialogHeader className="px-4 pt-4">
             <DialogTitle>Payment Receipt</DialogTitle>
           </DialogHeader>
-          <div className="px-6 pb-6">
+          <div className="px-4 pb-4">
             {receiptDialog.bill && receiptDialog.member && (
               <BillReceipt
                 bill={receiptDialog.bill}
                 member={receiptDialog.member}
                 societyName={societySettings.societyName || 'Society'}
+                onClose={() => setReceiptDialog({ open: false, bill: null, member: null })}
               />
             )}
           </div>
