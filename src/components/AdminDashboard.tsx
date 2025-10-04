@@ -2,13 +2,13 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Users, IndianRupee, TrendingUp, AlertTriangle, CheckCircle2, Clock, Plus, Eye, ArrowRight, Building2, Wallet, Bell, Activity, BarChart3, PieChart, Settings, FileText, Trash2, MoreVertical } from 'lucide-react';
+import { Users, IndianRupee, TrendingUp, AlertTriangle, CheckCircle2, Clock, Plus, Eye, ArrowRight, Building2, Wallet, Bell, Activity, BarChart3, PieChart, Settings, FileText, Trash2, MoreVertical, Download } from 'lucide-react';
 import { FinanceChart } from './FinanceChart';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { getSocietyStats, getRecentPayments, getOverdueMembers, generateMonthlyBills, addExpense, addNotice, getMembers, getRecentBills, getRecentExpenses, deleteBill, getAllNotices, getAllExpenses } from '@/lib/firestoreServices';
 import { BillReceipt } from '@/components/BillReceipt';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Timestamp } from 'firebase/firestore';
 import { useSocietySettings } from '@/hooks/use-society-settings';
@@ -57,6 +57,8 @@ export const AdminDashboard = () => {
     bill: any;
     member: any;
   }>({ open: false, bill: null, member: null });
+  const [allExpenses, setAllExpenses] = useState([]);
+  const [expensesLoading, setExpensesLoading] = useState(true);
 
   const handleSaveSettings = async () => {
     try {
@@ -140,6 +142,30 @@ export const AdminDashboard = () => {
       unsubscribeExpenses();
       unsubscribeNotices();
     };
+  }, []);
+
+  useEffect(() => {
+    setExpensesLoading(true);
+    const expensesRef = collection(db, 'expenses');
+    const q = query(expensesRef, orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const expenses = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setAllExpenses(expenses);
+      setExpensesLoading(false);
+    }, (error) => {
+      console.error('Error loading expenses:', error);
+      toast({
+        title: "Error Loading Expenses",
+        description: "Failed to load expense data. Please try again.",
+        variant: "destructive",
+      });
+      setExpensesLoading(false);
+    });
+
+    return unsubscribe;
   }, []);
 
   const loadData = () => {
@@ -1506,6 +1532,106 @@ export const AdminDashboard = () => {
                 </div>
                 <h3 className="text-lg font-semibold text-gray-700 mb-2">No Expenses Recorded</h3>
                 <p className="text-gray-500">Add your first expense to track spending</p>
+              </div>
+            )}
+          </div>
+        </Card>
+      </div>
+
+      {/* All Expenses Table */}
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 mb-6 lg:mb-8">
+        <Card className="hover-lift">
+          <div className="p-6 border-b bg-gradient-to-r from-red-50 to-pink-50">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-red-600" />
+                  All Expenses
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">Complete expense history ordered by creation date</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium">
+                  {allExpenses.length} Total
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="p-6">
+            {expensesLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+                <span className="ml-3 text-gray-600">Loading expenses...</span>
+              </div>
+            ) : allExpenses.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-3 px-4 font-semibold text-gray-800">Expense Category</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-800">Amount</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-800">Month</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-800">Year</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-800">Status</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-800">Created At</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {allExpenses.map((expense) => (
+                      <tr key={expense.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                              <Wallet className="w-4 h-4 text-red-600" />
+                            </div>
+                            <span className="font-medium text-gray-800 capitalize">{expense.category}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="font-semibold text-red-600">₹{expense.amount?.toLocaleString() || 'N/A'}</span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="text-gray-700">{expense.month || 'N/A'}</span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="text-gray-700">{expense.year || 'N/A'}</span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <Badge variant={expense.status === 'paid' ? 'default' : expense.status === 'pending' ? 'secondary' : 'outline'} className="capitalize">
+                              {expense.status || 'N/A'}
+                            </Badge>
+                            {expense.isImported && (
+                              <Badge variant="secondary" className="text-xs">
+                                <Download className="w-3 h-3 mr-1" />
+                                Imported
+                              </Badge>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="text-gray-600 text-sm">
+                            {expense.createdAt?.toDate().toLocaleDateString('en-IN', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            }) || 'N/A'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Wallet className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">No Expenses Found</h3>
+                <p className="text-gray-500">No expense records available</p>
               </div>
             )}
           </div>

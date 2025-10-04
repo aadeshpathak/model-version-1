@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,9 +23,14 @@ import {
   Truck,
   Users2,
   Edit,
-  Trash2
+  Trash2,
+  Upload,
+  FileText,
+  Download,
+  X
 } from 'lucide-react';
-import { getAllExpenses, addExpense, updateExpense, deleteExpense, type Expense } from '@/lib/firestoreServices';
+import { getAllExpenses, addExpense, updateExpense, deleteExpense, type Expense, addBill, getAllBills, getMembers, deleteBill } from '@/lib/firestoreServices';
+import { Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import MobileCard from '@/components/ui/MobileCard';
 import { motion } from 'framer-motion';
@@ -50,7 +55,20 @@ export const ExpenseManagement = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [isEditExpenseDialogOpen, setIsEditExpenseDialogOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [importStatus, setImportStatus] = useState<'idle' | 'uploading' | 'processing' | 'completed' | 'error'>('idle');
+  const [importProgress, setImportProgress] = useState(0);
+  const [expenseProgress, setExpenseProgress] = useState(0);
+  const [billProgress, setBillProgress] = useState(0);
+  const [importResult, setImportResult] = useState<{ billsInserted: number; expensesInserted: number; skipped: number } | null>(null);
+  const [hasImportedData, setHasImportedData] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deleteStatus, setDeleteStatus] = useState<'idle' | 'deleting' | 'completed' | 'error'>('idle');
+  const [deleteProgress, setDeleteProgress] = useState(0);
+  const [deleteBillProgress, setDeleteBillProgress] = useState(0);
+  const [deleteExpenseProgress, setDeleteExpenseProgress] = useState(0);
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     category: '',
@@ -63,8 +81,31 @@ export const ExpenseManagement = () => {
   });
 
   useEffect(() => {
-    const unsubscribe = getAllExpenses(setExpenses);
-    return unsubscribe;
+    let expensesUnsubscribe: (() => void) | null = null;
+    let billsUnsubscribe: (() => void) | null = null;
+
+    const checkImportedData = () => {
+      let hasImportedExpenses = false;
+      let hasImportedBills = false;
+
+      expensesUnsubscribe = getAllExpenses((expenses) => {
+        setExpenses(expenses);
+        hasImportedExpenses = expenses.some(expense => expense.isImported);
+        setHasImportedData(hasImportedExpenses || hasImportedBills);
+      });
+
+      billsUnsubscribe = getAllBills((bills) => {
+        hasImportedBills = bills.some(bill => bill.isImported);
+        setHasImportedData(hasImportedExpenses || hasImportedBills);
+      });
+    };
+
+    checkImportedData();
+
+    return () => {
+      expensesUnsubscribe?.();
+      billsUnsubscribe?.();
+    };
   }, []);
 
   const loadExpenses = () => {
@@ -296,6 +337,384 @@ export const ExpenseManagement = () => {
     return found ? found.color : 'bg-gray-400';
   };
 
+  const handleDeleteRecentImport = async () => {
+    if (!hasImportedData) {
+      toast({
+        title: "No Imported Data",
+        description: "No imported data found to delete.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteImportedData = async () => {
+    setDeleteStatus('deleting');
+    setDeleteProgress(10);
+    setDeleteBillProgress(0);
+    setDeleteExpenseProgress(0);
+
+    try {
+      let totalDeleted = 0;
+
+      // Phase 1: Delete imported bills first
+      setDeleteProgress(20);
+      const allBills = await new Promise<any[]>((resolve) => {
+        const unsubscribe = getAllBills((bills) => {
+          resolve(bills.filter(bill => bill.isImported));
+          unsubscribe();
+        });
+      });
+
+      if (allBills.length > 0) {
+        setDeleteProgress(40);
+        const billDeletePromises = allBills.map(bill => deleteBill(bill.id));
+        await Promise.all(billDeletePromises);
+        totalDeleted += allBills.length;
+        setDeleteBillProgress(100);
+      } else {
+        setDeleteBillProgress(100);
+      }
+
+      // Phase 2: Delete imported expenses after bills
+      setDeleteProgress(60);
+      const allExpenses = await new Promise<any[]>((resolve) => {
+        const unsubscribe = getAllExpenses((expenses) => {
+          resolve(expenses.filter(expense => expense.isImported));
+          unsubscribe();
+        });
+      });
+
+      if (allExpenses.length > 0) {
+        setDeleteProgress(80);
+        const expenseDeletePromises = allExpenses.map(expense => deleteExpense(expense.id));
+        await Promise.all(expenseDeletePromises);
+        totalDeleted += allExpenses.length;
+        setDeleteExpenseProgress(100);
+      } else {
+        setDeleteExpenseProgress(100);
+      }
+
+      setDeleteProgress(95);
+
+      if (totalDeleted === 0) {
+        setDeleteStatus('completed');
+        setDeleteProgress(100);
+        toast({
+          title: "No Data Found",
+          description: "No imported data found to delete.",
+        });
+        setTimeout(() => {
+          setIsDeleteDialogOpen(false);
+          setDeleteStatus('idle');
+          setDeleteProgress(0);
+        }, 2000);
+        return;
+      }
+
+      setDeleteProgress(100);
+      setDeleteStatus('completed');
+
+      toast({
+        title: "Imported Data Deleted",
+        description: `Successfully deleted ${totalDeleted} imported records from everywhere.`,
+      });
+
+      // Update state
+      setHasImportedData(false);
+
+      setTimeout(() => {
+        setIsDeleteDialogOpen(false);
+        setDeleteStatus('idle');
+        setDeleteProgress(0);
+        setDeleteBillProgress(0);
+        setDeleteExpenseProgress(0);
+      }, 3000);
+
+    } catch (error) {
+      console.error('Error deleting imported data:', error);
+      setDeleteStatus('error');
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete imported data.",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        setIsDeleteDialogOpen(false);
+        setDeleteStatus('idle');
+        setDeleteProgress(0);
+        setDeleteBillProgress(0);
+        setDeleteExpenseProgress(0);
+      }, 3000);
+    }
+  };
+
+  const handleImportFile = async (file: File, status: 'paid' | 'pending') => {
+    setImportStatus('uploading');
+    setImportProgress(10);
+
+    try {
+      // Parse the file on the client side
+      const fileContent = await file.arrayBuffer();
+      let rawData = [];
+
+      setImportProgress(20);
+
+      // Parse based on file type
+      if (file.name.endsWith('.csv')) {
+        // Simple CSV parsing (for basic CSV files)
+        const csvText = new TextDecoder().decode(fileContent);
+        const lines = csvText.split('\n').filter(line => line.trim());
+        if (lines.length > 0) {
+          const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+          rawData = lines.slice(1).map(line => {
+            const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+            const obj = {};
+            headers.forEach((header, index) => {
+              obj[header] = values[index] || '';
+            });
+            return obj;
+          });
+        }
+      } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+        // Use xlsx library for Excel files
+        const XLSX = await import('xlsx');
+        const workbook = XLSX.read(fileContent, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        rawData = XLSX.utils.sheet_to_json(worksheet);
+      } else if (file.name.endsWith('.json')) {
+        const jsonText = new TextDecoder().decode(fileContent);
+        rawData = JSON.parse(jsonText);
+      }
+
+      setImportProgress(40);
+      setImportStatus('processing');
+
+      if (!Array.isArray(rawData) || rawData.length === 0) {
+        throw new Error('No data found in file or invalid format');
+      }
+
+      // Get all approved members for bill creation
+      const members = await new Promise<any[]>((resolve) => {
+        const unsubscribe = getMembers((users) => {
+          resolve(users.filter(u => u.approved && u.role !== 'admin'));
+          unsubscribe();
+        });
+      });
+
+      if (members.length === 0) {
+        throw new Error('No approved members found to create bills for');
+      }
+
+      // Validate and transform data
+      const validRecords = [];
+      const errors = [];
+
+      rawData.forEach((record, index) => {
+        try {
+          const transformedRecord = {
+            expense_category: record.expense_category || record.category || record.Expense_Category || record.Category || 'other',
+            amount: parseFloat(record.amount || record.Amount || record.expense_amount || record.Expense_Amount || 0),
+            month: record.month || record.Month || record.expense_month || record.Expense_Month || 'January',
+            year: parseInt(record.year || record.Year || record.expense_year || record.Expense_Year || new Date().getFullYear()),
+            description: record.description || record.Description || `Imported from ${file.name}`
+          };
+
+          // Basic validation
+          if (transformedRecord.amount <= 0) {
+            throw new Error('Invalid amount');
+          }
+
+          validRecords.push(transformedRecord);
+        } catch (error) {
+          errors.push({
+            row: index + 1,
+            error: error.message
+          });
+        }
+      });
+
+      if (validRecords.length === 0) {
+        throw new Error('No valid records found in file');
+      }
+
+      setImportProgress(60);
+
+      // Import as both bills and expenses with smart categorization
+      const importBatchId = `import_${Date.now()}`;
+      let billsInserted = 0;
+      let expensesInserted = 0;
+      let skipped = 0;
+
+      // Smart category mapping
+      const getNormalizedCategory = (rawCategory: string) => {
+        if (!rawCategory) return 'other';
+
+        const category = String(rawCategory).toLowerCase().trim();
+
+        // Direct matches
+        const directMatches: { [key: string]: string } = {
+          'electricity': 'electricity',
+          'security': 'security',
+          'water': 'water',
+          'maintenance': 'maintenance',
+          'cleaning': 'cleaning',
+          'garbage': 'garbage',
+          'staff': 'staff',
+          'other': 'other'
+        };
+
+        if (directMatches[category]) return directMatches[category];
+
+        // Fuzzy matches
+        const fuzzyMatches = [
+          { patterns: ['electric', 'power', 'energy'], category: 'electricity' },
+          { patterns: ['security', 'guard', 'watchman'], category: 'security' },
+          { patterns: ['water', 'sewage', 'drainage'], category: 'water' },
+          { patterns: ['maintenance', 'repair', 'fix'], category: 'maintenance' },
+          { patterns: ['cleaning', 'cleaner', 'housekeeping'], category: 'cleaning' },
+          { patterns: ['garbage', 'waste', 'collection'], category: 'garbage' },
+          { patterns: ['staff', 'salary', 'employee', 'worker'], category: 'staff' }
+        ];
+
+        for (const match of fuzzyMatches) {
+          if (match.patterns.some(pattern => category.includes(pattern))) {
+            return match.category;
+          }
+        }
+
+        return 'other';
+      };
+
+      // Group expenses by month/year for bill creation
+      const expensesByMonth = validRecords.reduce((acc, record) => {
+        const key = `${record.month}-${record.year}`;
+        if (!acc[key]) {
+          acc[key] = {
+            month: record.month,
+            year: record.year,
+            totalAmount: 0,
+            records: []
+          };
+        }
+        acc[key].totalAmount += record.amount;
+        acc[key].records.push(record);
+        return acc;
+      }, {} as Record<string, { month: string; year: number; totalAmount: number; records: any[] }>);
+
+      // Phase 1: Create expenses first
+      setExpenseProgress(0);
+      for (let i = 0; i < validRecords.length; i++) {
+        const record = validRecords[i];
+        try {
+          const normalizedCategory = getNormalizedCategory(record.expense_category);
+
+          await addExpense({
+            category: normalizedCategory,
+            amount: record.amount,
+            month: record.month,
+            year: record.year,
+            vendor: 'Imported Dataset',
+            description: record.description || `Imported from ${file.name}`,
+            target: 'all',
+            status: status,
+            isImported: true,
+            importBatchId: importBatchId
+          });
+
+          expensesInserted++;
+          setExpenseProgress(Math.floor((i + 1) / validRecords.length * 100));
+        } catch (error) {
+          console.error('Error saving expense:', error);
+        }
+      }
+
+      // Phase 2: Create bills for each month with calculated amounts
+      setBillProgress(0);
+      const totalMonthKeys = Object.keys(expensesByMonth);
+      let monthProcessed = 0;
+
+      for (const monthKey of totalMonthKeys) {
+        const monthData = expensesByMonth[monthKey];
+        const billAmountPerMember = Math.round(monthData.totalAmount / members.length);
+
+        try {
+          const billPromises = members.map(member =>
+            addBill({
+              memberId: member.id,
+              amount: billAmountPerMember,
+              dueDate: Timestamp.fromDate(new Date(monthData.year, new Date(`${monthData.month} 1, ${monthData.year}`).getMonth() + 1, 0)), // Last day of month
+              status: status, // 'paid' or 'pending'
+              month: monthData.month,
+              year: monthData.year,
+              target: 'all',
+              lateFee: 0,
+              isImported: true,
+              importBatchId: importBatchId,
+              paidDate: status === 'paid' ? new Date().toISOString().split('T')[0] : undefined,
+              paymentMethod: status === 'paid' ? 'Import' : undefined,
+              receiptNumber: status === 'paid' ? `IMP${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}` : undefined
+            })
+          );
+
+          await Promise.all(billPromises);
+          billsInserted += members.length;
+
+          monthProcessed++;
+          setBillProgress(Math.floor((monthProcessed / totalMonthKeys.length) * 100));
+        } catch (error) {
+          console.error('Error saving bills for month:', monthKey, error);
+        }
+      }
+
+      // Update overall progress
+      setImportProgress(95);
+
+      setImportProgress(95);
+
+      // Import successful - update state
+      setHasImportedData(true);
+
+      setImportProgress(100);
+      setImportStatus('completed');
+      setImportResult({ billsInserted, expensesInserted, skipped });
+
+      const statusText = status === 'paid' ? 'paid bills and expenses' : 'pending bills and expenses';
+      const monthCount = Object.keys(expensesByMonth).length;
+      toast({
+        title: "Import Successful",
+        description: `Created ${billsInserted} bills and ${expensesInserted} expenses across ${monthCount} months for ${members.length} members.`,
+      });
+
+      // Reset after showing success
+      setTimeout(() => {
+        setImportStatus('idle');
+        setImportProgress(0);
+        setImportResult(null);
+        setIsImportDialogOpen(false);
+      }, 3000);
+
+    } catch (error) {
+      console.error('Import error:', error);
+      setImportStatus('error');
+
+      toast({
+        title: "Import Failed",
+        description: error instanceof Error ? error.message : "An error occurred during import",
+        variant: "destructive",
+      });
+
+      setTimeout(() => {
+        setImportStatus('idle');
+        setImportProgress(0);
+        setImportResult(null);
+      }, 3000);
+    }
+  };
+
   // Mobile View
   return (
     <>
@@ -308,7 +727,7 @@ export const ExpenseManagement = () => {
           transition={{ duration: 0.3 }}
         >
           <h1 className="text-xl font-bold text-gray-900">Expenses</h1>
-          <p className="text-sm text-gray-600">Track society expenses</p>
+          <p className="text-sm text-gray-600">Import and manage expenses</p>
         </motion.div>
 
         <div className="p-4 space-y-6 pb-24">
@@ -339,11 +758,12 @@ export const ExpenseManagement = () => {
             </MobileCard>
           </motion.div>
 
-          {/* Add Expense Button */}
+          {/* Action Buttons */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.4 }}
+            className="space-y-3"
           >
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
@@ -352,6 +772,45 @@ export const ExpenseManagement = () => {
                   Add Expense
                 </Button>
               </DialogTrigger>
+
+            <div className="flex gap-2">
+              <Button
+                className="flex-1 bg-gradient-primary text-white py-3 rounded-2xl font-medium"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Import Dataset
+              </Button>
+              {hasImportedData && (
+                <Button
+                  variant="destructive"
+                  className="flex-1 py-3 rounded-2xl font-medium"
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Delete Imported
+                </Button>
+              )}
+            </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,.xls,.xlsx,.json"
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  // Reset file input
+                  if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                  }
+                  // Store file temporarily and open status selection dialog
+                  (window as any).selectedImportFile = file;
+                  setIsImportDialogOpen(true);
+                }
+              }}
+            />
               <DialogContent className="max-w-md mx-4">
                 <DialogHeader>
                   <DialogTitle>Add New Expense</DialogTitle>
@@ -536,6 +995,12 @@ export const ExpenseManagement = () => {
                             <Badge variant="outline" className="text-xs mt-1 capitalize">
                               {expense.category}
                             </Badge>
+                            {expense.isImported && (
+                              <Badge variant="secondary" className="text-xs mt-1 ml-1">
+                                <Download className="w-3 h-3 mr-1" />
+                                Imported
+                              </Badge>
+                            )}
                           </div>
                         </div>
                         <div className="text-right ml-2">
@@ -563,15 +1028,32 @@ export const ExpenseManagement = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Expense Management</h1>
-          <p className="text-muted-foreground">Track and manage society expenses</p>
+          <p className="text-muted-foreground">Import and manage society expenses</p>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-gradient-primary shadow-primary" onClick={resetForm}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Expense
+        <div className="flex gap-2">
+          <Button
+            className="bg-gradient-primary shadow-primary"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Import Dataset
+          </Button>
+          {hasImportedData && (
+            <Button
+              variant="destructive"
+              onClick={() => setIsDeleteDialogOpen(true)}
+            >
+              <X className="w-4 h-4 mr-2" />
+              Delete Imported Data
             </Button>
-          </DialogTrigger>
+          )}
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-gradient-primary shadow-primary" onClick={resetForm}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Expense
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Add New Expense</DialogTitle>
@@ -680,6 +1162,226 @@ export const ExpenseManagement = () => {
             </form>
           </DialogContent>
         </Dialog>
+  
+        {/* Import Dataset Dialog */}
+        <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Import Dataset</DialogTitle>
+            </DialogHeader>
+  
+            {importStatus === 'idle' && (
+              <div className="space-y-4">
+                <div className="text-sm text-muted-foreground">
+                  Choose how to mark the imported expenses:
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => {
+                      const file = (window as any).selectedImportFile;
+                      if (file) {
+                        handleImportFile(file, 'paid');
+                      }
+                    }}
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                  >
+                    Mark as Paid
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      const file = (window as any).selectedImportFile;
+                      if (file) {
+                        handleImportFile(file, 'pending');
+                      }
+                    }}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Mark as Pending
+                  </Button>
+                </div>
+              </div>
+            )}
+  
+            {(importStatus === 'uploading' || importStatus === 'processing') && (
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="text-lg font-semibold">
+                    {importStatus === 'uploading' ? 'Uploading File...' : 'Processing Data...'}
+                  </div>
+                  <div className="text-sm text-muted-foreground mt-2">
+                    {importProgress}% completed
+                  </div>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${importProgress}%` }}
+                  ></div>
+                </div>
+
+                {/* Phase-specific progress bars */}
+                {importStatus === 'processing' && (
+                  <div className="space-y-3 mt-4">
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span>Creating Expenses</span>
+                        <span>{expenseProgress}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${expenseProgress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span>Creating Bills</span>
+                        <span>{billProgress}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-orange-600 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${billProgress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+  
+            {importStatus === 'completed' && importResult && (
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="text-green-600 text-2xl mb-2">✓</div>
+                  <div className="text-lg font-semibold text-green-600">Import Completed!</div>
+                  <div className="text-sm text-muted-foreground mt-2">
+                    {importResult.billsInserted} bills and {importResult.expensesInserted} expenses imported
+                  </div>
+                </div>
+              </div>
+            )}
+  
+            {importStatus === 'error' && (
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="text-red-600 text-2xl mb-2">✗</div>
+                  <div className="text-lg font-semibold text-red-600">Import Failed</div>
+                  <div className="text-sm text-muted-foreground mt-2">
+                    Please check your file and try again
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Imported Data Dialog */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Delete Imported Data</DialogTitle>
+            </DialogHeader>
+
+            {deleteStatus === 'idle' && (
+              <div className="space-y-4">
+                <div className="text-sm text-muted-foreground">
+                  This will permanently delete ALL imported bills and expenses from everywhere. This action cannot be undone.
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={confirmDeleteImportedData}
+                    variant="destructive"
+                    className="flex-1"
+                  >
+                    Delete All Imported Data
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsDeleteDialogOpen(false)}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {deleteStatus === 'deleting' && (
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="text-lg font-semibold">
+                    Deleting Imported Data...
+                  </div>
+                  <div className="text-sm text-muted-foreground mt-2">
+                    {deleteProgress}% completed
+                  </div>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-red-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${deleteProgress}%` }}
+                  ></div>
+                </div>
+
+                {/* Phase-specific progress bars */}
+                <div className="space-y-3 mt-4">
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span>Deleting Bills</span>
+                      <span>{deleteBillProgress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-red-500 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${deleteBillProgress}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span>Deleting Expenses</span>
+                      <span>{deleteExpenseProgress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-red-400 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${deleteExpenseProgress}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {deleteStatus === 'completed' && (
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="text-green-600 text-2xl mb-2">✓</div>
+                  <div className="text-lg font-semibold text-green-600">Deletion Completed!</div>
+                  <div className="text-sm text-muted-foreground mt-2">
+                    All imported data has been successfully deleted
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {deleteStatus === 'error' && (
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="text-red-600 text-2xl mb-2">✗</div>
+                  <div className="text-lg font-semibold text-red-600">Deletion Failed</div>
+                  <div className="text-sm text-muted-foreground mt-2">
+                    Please try again or contact support
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
       </div>
 
       {/* Stats Cards */}
@@ -856,6 +1558,12 @@ export const ExpenseManagement = () => {
                         <Badge variant="outline" className="capitalize">
                           {expense.category}
                         </Badge>
+                        {expense.isImported && (
+                          <Badge variant="secondary" className="text-xs">
+                            <Download className="w-3 h-3 mr-1" />
+                            Imported
+                          </Badge>
+                        )}
                       </div>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <span>{expense.vendor}</span>
@@ -983,7 +1691,6 @@ export const ExpenseManagement = () => {
         </DialogContent>
       </Dialog>
     </div>
-  );
     </>
   );
 };

@@ -26,6 +26,7 @@ import { ExpenseManagement } from '@/components/admin/ExpenseManagement';
 import { FinancialReports } from '@/components/admin/FinancialReports';
 import { SocietySettings } from '@/components/admin/SocietySettings';
 import { NoticesManagement } from '@/components/admin/NoticesManagement';
+import { MLInsights } from '@/components/admin/MLInsights';
 import MobileLayout from '@/components/mobile/MobileLayout';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -213,6 +214,7 @@ const Index = () => {
         case 'expenses': return 'Expenses';
         case 'notices': return 'Notices';
         case 'reports': return 'Reports';
+        case 'aiInsights': return 'AI Insights';
         case 'settings': return 'Settings';
         default: return 'Admin Dashboard';
       }
@@ -237,6 +239,7 @@ const Index = () => {
         case 'expenses': return <ExpenseManagement />;
         case 'notices': return <NoticesManagement />;
         case 'reports': return <FinancialReports />;
+        case 'aiInsights': return <MLInsights />;
         case 'settings':
           return <SocietySettings />;
         default: return <AdminDashboard />;

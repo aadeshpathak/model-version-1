@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, FileText, CreditCard, Bell, Menu, User, Settings, Users, BarChart3, Building2, X, LogOut } from 'lucide-react';
+import { Home, FileText, CreditCard, Bell, Menu, User, Settings, Users, BarChart3, Building2, X, LogOut, Brain } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
 
 const MobileBottomNav: React.FC = () => {
@@ -15,6 +15,7 @@ const MobileBottomNav: React.FC = () => {
         { id: 'bills', label: 'Bills', icon: FileText },
         { id: 'expenses', label: 'Expenses', icon: CreditCard },
         { id: 'reports', label: 'Reports', icon: BarChart3 },
+        { id: 'aiInsights', label: 'AI Insights', icon: Brain },
         { id: 'settings', label: 'Settings', icon: Settings },
       ];
     } else {
@@ -24,6 +25,7 @@ const MobileBottomNav: React.FC = () => {
         { id: 'payments', label: 'Payments', icon: CreditCard },
         { id: 'notices', label: 'Notices', icon: Bell },
         { id: 'profile', label: 'Profile', icon: User },
+        { id: 'aiInsights', label: 'AI Insights', icon: Brain },
       ];
     }
   };

@@ -30,6 +30,8 @@ export interface Bill {
   receiptNumber?: string;
   paymentMethod?: string;
   lateFee?: number;
+  isImported?: boolean;
+  importBatchId?: string;
 }
 
 export interface Notice {
@@ -51,7 +53,10 @@ export interface Expense {
   month: string;
   year: number;
   target: 'all' | string[]; // 'all' or array of memberIds
-  createdAt: TimestampType;
+  status?: 'paid' | 'pending';
+  isImported?: boolean;
+  importBatchId?: string;
+  createdAt?: TimestampType;
 }
 
 // Get all members (for admin)
@@ -367,6 +372,14 @@ export const getRecentExpenses = (callback: (expenses: Expense[]) => void) => {
 export const updateBill = async (billId: string, data: Partial<Bill>) => {
   const billRef = doc(db, 'bills', billId);
   await updateDoc(billRef, data);
+};
+
+// Add single bill
+export const addBill = async (data: Omit<Bill, 'id'>) => {
+  await addDoc(collection(db, 'bills'), {
+    ...data,
+    createdAt: serverTimestamp()
+  });
 };
 
 // Delete bill

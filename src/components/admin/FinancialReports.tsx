@@ -1306,9 +1306,9 @@ export const FinancialReports = () => {
 
       {/* Charts and Analytics */}
       <Tabs defaultValue="overview" className="space-y-4 sm:space-y-6">
-        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 h-auto p-1">
+        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-6 h-auto p-1">
           <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
-          <TabsTrigger value="visualizations" className="text-xs sm:text-sm hidden sm:block">Visualizations</TabsTrigger>
+          <TabsTrigger value="visualizations" className="text-xs sm:text-sm">Visualizations</TabsTrigger>
           <TabsTrigger value="revenue" className="text-xs sm:text-sm">Revenue</TabsTrigger>
           <TabsTrigger value="expenses" className="text-xs sm:text-sm">Expenses</TabsTrigger>
           <TabsTrigger value="transactions" className="text-xs sm:text-sm">Transactions</TabsTrigger>

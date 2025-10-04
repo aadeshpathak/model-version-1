@@ -7,7 +7,7 @@
 - **Real-time**: onSnapshot for live data sync across all components with instant updates.
 - **Mobile Responsive**: Complete mobile-first refactoring with dedicated mobile components, bottom navigation, header with hamburger menu, neumorphism-style cards, and app-like UX.
 - **UI Enhancements**: Advanced animations, hover effects, gradient shifts, smooth transitions, professional styling, and mobile-optimized typography.
-- **Recent Updates**: Full mobile UI overhaul with separate mobile layouts, charts responsiveness, safe area padding, touch-friendly interactions, enhanced expense management with real-time editing, year filtering, and advanced category operations.
+- **Recent Updates**: Full mobile UI overhaul with separate mobile layouts, charts responsiveness, safe area padding, touch-friendly interactions, enhanced expense management with real-time editing, year filtering, advanced category operations, AI insights integration, and comprehensive Import Dataset feature with Firebase integration, smart categorization, multi-month bill creation, and progress tracking.
 - **Files Modified**:
   - src/components/LoginForm.tsx: Dual-mode login ("Login" vs "Request to Join") with approval workflow and mobile variant.
   - src/lib/firebase.ts: Firebase config with environment variables.
@@ -16,7 +16,7 @@
   - src/components/admin/MembersManagement.tsx: Member management with approve/dismiss functionality.
   - src/components/AdminDashboard.tsx: Reorganized dashboard with square action cards, live stats, mobile view, reports tab with visualizations dropdown, functional settings save button, responsive notices page, and logout in hamburger menu.
   - src/components/admin/BillManagement.tsx: Bill generation and management (target removed, sends to all).
-  - src/components/admin/ExpenseManagement.tsx: Real-time expense tracking with advanced filtering (search, category, month, year), category-wise editing/deletion with month-specific operations, and functional year dropdown (2020-current year).
+  - src/components/admin/ExpenseManagement.tsx: Real-time expense tracking with advanced filtering (search, category, month, year), category-wise editing/deletion with month-specific operations, functional year dropdown (2020-current year), comprehensive Import Dataset feature with smart categorization, multi-month bill creation, progress bars, and mobile-responsive import/delete functionality.
   - src/components/admin/SocietySettings.tsx: Admin settings with password update functionality.
   - src/components/Navigation.tsx: Responsive navigation (desktop sidebar + mobile bottom navbar + hamburger menu).
   - src/pages/Index.tsx: Main router with mobile-responsive layout and approval flow.
@@ -29,9 +29,18 @@
   - src/index.css: Custom CSS utilities for animations, mobile responsiveness, and enhanced styling.
   - src/App.css: Mobile-specific overflow-x hidden rules.
   - src/components/admin/FinancialReports.tsx: Fixed mobile reports visualizations to respect applied period filters, ensuring all charts and metrics update according to selected time period.
+  - src/components/Navigation.tsx: Added Brain icon import and AI insights menu item to admin menu, integrated into desktop sidebar navigation and mobile bottom navbar (5 main tabs with horizontal scroll support), with hamburger menu for remaining items.
+  - src/pages/Index.tsx: Added MLInsights component import and routing for 'aiInsights' view in admin dashboard, including title handling for mobile header.
   - src/context/UserContext.tsx: Added unreadNoticesCount state and setUnreadNoticesCount function for tracking unread notices.
   - src/components/MemberDashboard.tsx: Implemented unread notices count display and read tracking functionality with click-to-mark-as-read.
   - src/components/mobile/MobileBottomNav.tsx: Added red badge on notices tab showing unread count.
+  - src/lib/ml-utils.ts: Created comprehensive machine learning utilities including data preprocessing, expense forecasting, anomaly detection, payment behavior analysis, budget recommendations, and member engagement scoring.
+  - src/lib/ml-insights.ts: Implemented ML insights service layer that integrates ML algorithms with existing Firebase data streams.
+  - src/lib/ml-advanced.ts: Advanced TensorFlow.js integration with neural networks, autoencoders, time series decomposition, and deep learning models for enhanced prediction accuracy.
+  - src/hooks/use-ml-insights.ts: Created React hook for ML insights integration with automatic data processing and real-time updates.
+  - src/components/admin/MLInsights.tsx: Enhanced ML-powered analytics dashboard with 12 functional real-time ML components including expense forecasting, anomaly detection, member engagement analysis, payment behavior tracking, maintenance predictions, seasonal trends, cost analysis, risk assessment, ML configuration, real-time metrics, and predictive analytics.
+  - src/components/AdminDashboard.tsx: Added "AI Insights" tab to admin dashboard for accessing ML-powered analytics.
+  - server.js: Express.js server with Multer file upload, CSV/Excel/JSON parsing, Zod validation, Firebase integration, and comprehensive error handling for Import Dataset feature.
 - **UI Features**: Mobile-responsive design, smooth animations, professional styling, no horizontal scroll, touch-friendly interface, neumorphism cards, bottom navigation, advanced filtering with year dropdown, real-time expense editing.
 
 ## What's Working
@@ -45,8 +54,22 @@
   - Members Management: Approve/dismiss new requests, manage existing members with real-time updates.
   - Bills Management: Generate bills for all members, track payments, mark as paid with success notifications.
   - Notices Management: Send announcements to all or specific members.
-  - Expense Management: Real-time expense tracking with advanced filtering (search, category, month, year), category-wise editing/deletion with month-specific operations, and functional year dropdown (2020-current year).
+  - Expense Management: Real-time expense tracking with advanced filtering (search, category, month, year), category-wise editing/deletion with month-specific operations, functional year dropdown (2020-current year), and comprehensive Import Dataset feature with smart categorization, multi-month bill creation, and progress tracking.
   - Financial Reports: Generate comprehensive reports with visualizations dropdown and month filtering.
+  - **Import Dataset Feature**: Complete data import system supporting CSV, Excel, and JSON files with Firebase integration, smart categorization, dual import (bills + expenses), multi-month support, progress bars, and mobile responsiveness.
+  - **Enhanced AI-Powered Analytics** (12 Functional ML Components):
+    - **Expense Forecasting**: Real-time prediction with confidence scoring and trend analysis
+    - **Anomaly Detection**: Live anomaly identification with severity scoring and detailed breakdowns
+    - **Smart Budgeting**: AI-driven budget recommendations with efficiency scoring and savings opportunities
+    - **Member Engagement**: Multi-factor engagement analysis with visual progress indicators
+    - **Payment Behavior**: Risk assessment dashboard with reliability tracking and early warning system
+    - **Maintenance Predictions**: Predictive scheduling with cost forecasting and budget recommendations
+    - **Seasonal Trends**: Visual analysis of expense patterns across different time periods
+    - **Cost Trend Analysis**: Long-term trend identification with actionable insights
+    - **Risk Assessment**: High-risk member identification with intervention recommendations
+    - **ML Configuration**: Interactive parameter tuning for forecasting and anomaly detection
+    - **Real-time Metrics**: Live dashboard with key performance indicators
+    - **Predictive Analytics**: Comprehensive forecasting for expenses and maintenance schedules
 - **Member Features**:
   - Dashboard with personal bills, notices, expenses, and profile management.
   - Pay Now buttons for pending bills with success/failure notifications.
@@ -80,6 +103,33 @@
 - **Expense Management Enhancements**: Added real-time expense editing with month-specific operations, year filtering dropdown (2020-current), and advanced category management with conditional edit/delete based on filter selections.
 - **Mobile Reports Visualizations Filter Issue**: Fixed visualizations in mobile reports not updating according to applied period filters. Modified calculateMetrics to filter bills and expenses by selected period before calculating chart data and metrics, ensuring expense categories, payment status, and revenue charts respect the selected time period (6 months, 12 months, or specific month).
 - **Unread Notices Badge**: Added red-colored unread notices count badge on the notices tab in member dashboard for all device views. Implemented read tracking with readBy array in notices, and count updates dynamically when notices are marked as read by clicking on them.
+- **Enhanced AI Insights Dashboard**: Completely redesigned AI Insights page with 12 functional real-time ML components:
+  - **Expense Forecasting**: Real-time expense prediction with confidence levels and trend indicators
+  - **Anomaly Detection**: Live anomaly detection with scoring and detailed expense analysis
+  - **Smart Budgeting**: AI-powered budget recommendations with efficiency scoring and savings opportunities
+  - **Member Engagement**: Multi-factor engagement scoring with visual progress indicators
+  - **Payment Behavior Analysis**: Risk assessment and payment reliability tracking
+  - **Maintenance Predictions**: Predictive maintenance scheduling with cost forecasting
+  - **Seasonal Trends**: Visual analysis of seasonal expense patterns
+  - **Cost Trend Analysis**: Long-term cost trend identification (increasing/decreasing/stable)
+  - **Risk Assessment**: High-risk member identification with reliability scoring
+  - **ML Configuration**: Interactive ML parameter settings for forecasting and anomaly detection
+  - **Real-time Metrics**: Live dashboard metrics with category counts and engagement levels
+  - **Predictive Analytics**: Comprehensive predictive insights for expenses and maintenance
+  - **Interactive UI**: Uses existing CSS styling with gradient cards, progress bars, and responsive design
+- **Import Dataset Feature**: Comprehensive data import system with Firebase integration:
+  - **Multi-Format Support**: CSV, Excel (.xlsx/.xls), and JSON file imports
+  - **Smart Categorization**: Fuzzy matching for expense categories (electricity, security, water, maintenance, cleaning, garbage, staff, other)
+  - **Dual Import System**: Creates both bills AND expenses for complete financial tracking
+  - **Multi-Month Support**: Handles datasets spanning multiple months with per-month bill calculation
+  - **Progress Tracking**: Real-time progress bars for both import and delete operations
+  - **Mobile Responsive**: Full import functionality available on both desktop and mobile devices
+  - **Data Validation**: Zod schema validation with comprehensive error handling
+  - **Batch Tracking**: Import batch IDs for data management and deletion
+  - **Status Options**: Mark imported data as "paid" (increments collections) or "pending" (future bills)
+  - **Server-Side Processing**: Express.js backend with Multer file upload and Firebase integration
+  - **Visual Feedback**: Progress bars, success/error states, and imported data badges
+  - **Complete Cleanup**: Delete imported data from both bills and expenses collections
 
 ## Your Actions Taken
 - Enabled Firebase Auth (Email/Password) with user registration and approval workflow.
@@ -106,6 +156,8 @@
 5. **Test Approval Workflow**: As admin, go to Members → Pending Members → Approve the new member.
 6. **Test Real-time Updates**: Notice instant updates when approval status changes.
 7. **Test Mobile Navigation**: On mobile, use bottom navbar and hamburger menu for navigation.
+8. **Test Enhanced ML Features**: As admin, go to "AI Insights" tab to see 12 comprehensive ML-powered analytics including expense forecasting, anomaly detection, member engagement analysis, payment behavior tracking, maintenance predictions, and smart budgeting recommendations.
+9. **Test Import Dataset Feature**: As admin, go to Expense Management → Import Dataset to upload CSV/Excel/JSON files, test smart categorization, multi-month bill creation, progress bars, and delete functionality on both desktop and mobile.
 
 ## Installation Instructions for First-Time Setup
 
@@ -201,6 +253,21 @@ If you're cloning this repository from GitHub for the first time, follow these s
 - TanStack Query 5.83.0
 - Recharts 2.15.4
 - Chart.js 4.5.0
+- **ML Libraries**:
+  - TensorFlow.js (@tensorflow/tfjs) - Browser-based machine learning
+  - TensorFlow.js Visualization (@tensorflow/tfjs-vis) - ML model visualization
+  - ML Matrix (ml-matrix) - Matrix operations for ML algorithms
+  - Simple Statistics (simple-statistics) - Statistical functions
+  - D3 Time Format (d3-time-format) - Time series data formatting
+  - Brain.js (brain.js) - Neural network library
+- **Server Libraries** (for Import Dataset feature):
+  - Express.js - Web server framework
+  - Multer - File upload middleware
+  - CSV Parser - CSV file processing
+  - XLSX - Excel file processing
+  - Zod - Data validation and schema definition
+  - CORS - Cross-origin resource sharing
+  - UUID - Unique identifier generation
 
 ## Current Status
 The app is fully functional with professional UI/UX, complete mobile refactoring, real-time updates, and complete approval workflow. All syntax errors have been resolved and the development server runs successfully. Desktop views remain unchanged while mobile has been completely redesigned with modern app-like interface. For payment gateway integration (Razorpay), provide API keys when ready.

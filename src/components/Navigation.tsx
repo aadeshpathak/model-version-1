@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useUser } from '@/context/UserContext';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Home, Users, TrendingUp, Bell, Settings, LogOut, Mail, DollarSign, FileText, Menu } from 'lucide-react';
+import { Home, Users, TrendingUp, Bell, Settings, LogOut, Mail, DollarSign, FileText, Menu, Brain } from 'lucide-react';
 
 export const Navigation = () => {
   const { currentView, setCurrentView, handleLogout, role } = useUser();
@@ -13,6 +13,7 @@ export const Navigation = () => {
     { icon: Users, label: 'Members', key: 'members' },
     { icon: DollarSign, label: 'Bills', key: 'bills' },
     { icon: TrendingUp, label: 'Expenses', key: 'expenses' },
+    { icon: Brain, label: 'AI Insights', key: 'aiInsights' },
     { icon: Bell, label: 'Notices', key: 'notices' },
     { icon: FileText, label: 'Reports', key: 'reports' },
     { icon: Settings, label: 'Settings', key: 'settings' },
@@ -91,9 +92,9 @@ export const Navigation = () => {
   // Mobile Bottom Navbar - App Style
   const MobileNavbar = () => (
     <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/98 backdrop-blur-xl border-t border-gray-200 shadow-2xl z-50 safe-area-bottom">
-      {/* Main navbar with 4 primary items */}
-      <div className="flex items-center justify-around py-2 px-2">
-        {menu.slice(0, 4).map((item) => (
+      {/* Main navbar with 5 primary items */}
+      <div className="flex items-center justify-around py-2 px-2 overflow-x-auto">
+        {menu.slice(0, 5).map((item) => (
           <Button
             key={item.key}
             variant="ghost"
@@ -113,7 +114,7 @@ export const Navigation = () => {
         ))}
 
         {/* Hamburger Menu for additional items */}
-        {menu.length > 4 && (
+        {menu.length > 5 && (
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
               <Button
@@ -155,7 +156,7 @@ export const Navigation = () => {
                 {/* Menu Items - Grid Layout */}
                 <div className="flex-1 p-4">
                   <div className="grid grid-cols-2 gap-3 mb-6">
-                    {menu.slice(4).map((item) => (
+                    {menu.slice(5).map((item) => (
                       <Button
                         key={item.key}
                         variant={currentView === item.key ? "default" : "ghost"}
