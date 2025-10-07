@@ -29,6 +29,7 @@ export const PaymentDialog = ({ open, onOpenChange, bill, memberId, memberEmail,
   const [showPaymentWaiting, setShowPaymentWaiting] = useState(false);
   const [paymentTimeout, setPaymentTimeout] = useState<NodeJS.Timeout | null>(null);
   const [countdown, setCountdown] = useState(300); // 5 minutes in seconds
+  const [paymentCancelled, setPaymentCancelled] = useState(false);
 
   // Countdown effect
   useEffect(() => {
@@ -75,7 +76,7 @@ export const PaymentDialog = ({ open, onOpenChange, bill, memberId, memberEmail,
   // Function to check Frinext payment status
   const checkFrinextPaymentStatus = async (orderId: string) => {
     try {
-      const response = await fetch(`http://localhost:3001/api/frinext/check-status`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}/api/frinext/check-status`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -209,7 +210,7 @@ export const PaymentDialog = ({ open, onOpenChange, bill, memberId, memberEmail,
       const orderId = frinextService.generateOrderId(bill.id);
       const redirectUrl = `${window.location.origin}/payment/callback?orderId=${orderId}`;
 
-      const serverResponse = await fetch('http://localhost:3001/api/frinext/create-order', {
+      const serverResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}/api/frinext/create-order`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -276,15 +277,23 @@ export const PaymentDialog = ({ open, onOpenChange, bill, memberId, memberEmail,
       setPaymentTimeout(null);
     }
 
+    // Mark as cancelled - prevents re-initiating for 5 minutes
+    setPaymentCancelled(true);
+
     // Reset state
     setShowPaymentWaiting(false);
     setFrinextOrderData(null);
     setCountdown(300);
 
+    // Re-enable payment after 5 minutes
+    setTimeout(() => {
+      setPaymentCancelled(false);
+    }, 5 * 60 * 1000); // 5 minutes
+
     toast({
       title: "Payment Cancelled",
-      description: "You can try again anytime.",
-      variant: "default"
+      description: "Payment session cancelled. You can try again after 5 minutes.",
+      variant: "destructive"
     });
   };
 
@@ -361,7 +370,7 @@ export const PaymentDialog = ({ open, onOpenChange, bill, memberId, memberEmail,
 
                 <Button
                   onClick={handleOnlinePayment}
-                  disabled={isProcessing || !customerMobile.trim()}
+                  disabled={isProcessing || !customerMobile.trim() || paymentCancelled}
                   variant="outline"
                   className="w-full border-blue-200 hover:bg-blue-50"
                   size="lg"
@@ -372,6 +381,8 @@ export const PaymentDialog = ({ open, onOpenChange, bill, memberId, memberEmail,
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Setting up payment...
                     </>
+                  ) : paymentCancelled ? (
+                    'Payment Temporarily Disabled (Try again in 5 min)'
                   ) : (
                     'Pay Online (UPI) via Frinext'
                   )}
@@ -437,21 +448,24 @@ export const PaymentDialog = ({ open, onOpenChange, bill, memberId, memberEmail,
               </p>
             </div>
 
-            <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-amber-800">Time Remaining:</span>
-                <span className="text-sm font-mono font-bold text-amber-700">
+            <div className={`p-6 rounded-lg border-2 ${countdown < 60 ? 'bg-red-50 border-red-300' : 'bg-amber-50 border-amber-300'}`}>
+              <div className="text-center mb-4">
+                <Clock className={`w-8 h-8 mx-auto mb-2 ${countdown < 60 ? 'text-red-600' : 'text-amber-600'}`} />
+                <div className="text-2xl font-mono font-bold text-center">
                   {formatTime(countdown)}
-                </span>
+                </div>
+                <p className={`text-sm font-semibold ${countdown < 60 ? 'text-red-700' : 'text-amber-700'}`}>
+                  {countdown < 60 ? '⚠️ HURRY - Payment expires soon!' : 'Time Remaining to Complete Payment'}
+                </p>
               </div>
-              <div className="w-full bg-amber-200 rounded-full h-2">
+              <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
                 <div
-                  className="bg-amber-600 h-2 rounded-full transition-all duration-1000"
+                  className={`h-3 rounded-full transition-all duration-1000 ${countdown < 60 ? 'bg-red-500' : 'bg-amber-500'}`}
                   style={{ width: `${(countdown / 300) * 100}%` }}
                 ></div>
               </div>
-              <p className="text-xs text-amber-700 mt-2">
-                Complete payment before timer expires
+              <p className={`text-xs text-center font-medium ${countdown < 60 ? 'text-red-600' : 'text-amber-600'}`}>
+                {countdown < 60 ? 'Complete your payment immediately!' : 'Complete payment before timer expires'}
               </p>
             </div>
 
