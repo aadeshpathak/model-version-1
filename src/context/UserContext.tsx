@@ -19,6 +19,8 @@ interface UserContextType {
   userData: User | null;
   isInitializing: boolean;
   unreadNoticesCount: number;
+  currentEnvironment: string;
+  setCurrentEnvironment: (env: string) => void;
   setUnreadNoticesCount: (count: number) => void;
   handleLogin: (userType: UserType, email: string, uid: string, approved: boolean, dismissed: boolean) => void;
   handleLogout: () => void;
@@ -51,6 +53,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
   const [userData, setUserData] = useState<User | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
   const [unreadNoticesCount, setUnreadNoticesCount] = useState(0);
+  const [currentEnvironment, setCurrentEnvironment] = useState<string>('default');
 
   // Session management constants
   const SESSION_TIMEOUT = 20 * 60 * 1000; // 20 minutes in milliseconds
@@ -309,6 +312,8 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     userData,
     isInitializing,
     unreadNoticesCount,
+    currentEnvironment,
+    setCurrentEnvironment,
     setUnreadNoticesCount,
     handleLogin,
     handleLogout,

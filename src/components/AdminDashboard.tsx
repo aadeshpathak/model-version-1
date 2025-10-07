@@ -519,13 +519,15 @@ export const AdminDashboard = () => {
               <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-white/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
 
               <div className="relative z-10">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-lg">
-                    <Building2 className="w-7 h-7 text-white" />
-                  </div>
-                  <div>
-                    <h1 className="text-2xl font-bold text-white mb-1">Admin Dashboard</h1>
-                    <p className="text-indigo-100 text-sm">{societySettings.societyName || 'Society'} Management</p>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-lg">
+                      <Building2 className="w-7 h-7 text-white" />
+                    </div>
+                    <div>
+                      <h1 className="text-2xl font-bold text-white mb-1">Admin Dashboard</h1>
+                      <p className="text-indigo-100 text-sm">{societySettings.societyName || 'Society'} Management</p>
+                    </div>
                   </div>
                 </div>
 
@@ -1657,11 +1659,11 @@ export const AdminDashboard = () => {
 
       {/* Receipt Dialog */}
       <Dialog open={receiptDialog.open} onOpenChange={(open) => setReceiptDialog({ open, bill: null, member: null })}>
-        <DialogContent className="max-w-sm sm:max-w-md p-0">
+        <DialogContent className="w-[95vw] max-w-sm mx-auto p-0 bg-white/95 backdrop-blur-sm">
           <DialogHeader className="px-4 pt-4">
-            <DialogTitle>Payment Receipt</DialogTitle>
+            <DialogTitle className="text-lg">Payment Receipt</DialogTitle>
           </DialogHeader>
-          <div className="px-4 pb-4">
+          <div className="px-4 pb-4 max-h-[70vh] overflow-y-auto">
             {receiptDialog.bill && receiptDialog.member && (
               <BillReceipt
                 bill={receiptDialog.bill}

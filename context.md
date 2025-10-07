@@ -1,14 +1,14 @@
 # Society Management App Context
 
 ## Current Setup
-- **Tech Stack**: React (TypeScript), Vite, shadcn/ui, Tailwind CSS, Firebase (Auth + Firestore), Framer Motion, Razorpay (Test Mode).
+- **Tech Stack**: React (TypeScript), Vite, shadcn/ui, Tailwind CSS, Firebase (Auth + Firestore), Framer Motion, Frinext Payment Gateway.
 - **Auth**: Firebase Email/Password. Role-based (admin/member) with approval workflow.
 - **Database**: Firestore with collections: users (role, approved, dismissed, bannedUntil, fullName, phone, flatNumber, lastLogin, payments), bills (status, payment tracking, lateFee), expenses, notices (target, readBy).
 - **Real-time**: onSnapshot for live data sync across all components with instant updates.
 - **Mobile Responsive**: Complete mobile-first refactoring with dedicated mobile components, bottom navigation, header with hamburger menu, neumorphism-style cards, and app-like UX.
 - **UI Enhancements**: Advanced animations, hover effects, gradient shifts, smooth transitions, professional styling, and mobile-optimized typography.
-- **Payment Gateway**: Razorpay test mode integration with Cash/Online payment options, transaction tracking, late fee calculation, and receipt generation.
-- **Recent Updates**: Full mobile UI overhaul with separate mobile layouts, charts responsiveness, safe area padding, touch-friendly interactions, enhanced expense management with real-time editing, year filtering, advanced category operations, AI insights integration, comprehensive Import Dataset feature with Firebase integration, smart categorization, multi-month bill creation, progress tracking, and complete payment gateway implementation with Razorpay test mode.
+- **Payment Gateway**: Frinext payment gateway integration with Cash/Online payment options, transaction tracking, late fee calculation, receipt generation, and payment waiting screen with cancel option.
+- **Recent Updates**: Full mobile UI overhaul with separate mobile layouts, charts responsiveness, safe area padding, touch-friendly interactions, enhanced expense management with real-time editing, year filtering, advanced category operations, AI insights integration, comprehensive Import Dataset feature with Firebase integration, smart categorization, multi-month bill creation, progress tracking, complete payment gateway implementation with Frinext (removed UroPay), payment waiting screen with cancel option, and React hooks order violation fix.
 - **Files Modified**:
   - src/components/LoginForm.tsx: Dual-mode login ("Login" vs "Request to Join") with approval workflow and mobile variant.
   - src/lib/firebase.ts: Firebase config with environment variables.
@@ -42,9 +42,10 @@
   - src/components/admin/MLInsights.tsx: Enhanced ML-powered analytics dashboard with 12 functional real-time ML components including expense forecasting, anomaly detection, member engagement analysis, payment behavior tracking, maintenance predictions, seasonal trends, cost analysis, risk assessment, ML configuration, real-time metrics, and predictive analytics.
   - src/components/AdminDashboard.tsx: Added "AI Insights" tab to admin dashboard for accessing ML-powered analytics.
   - server.js: Express.js server with Multer file upload, CSV/Excel/JSON parsing, Zod validation, Firebase integration, and comprehensive error handling for Import Dataset feature.
-  - index.html: Added Razorpay checkout script for payment gateway integration.
-  - .env: Added Razorpay test API keys (VITE_RAZORPAY_KEY_ID and VITE_RAZORPAY_KEY_SECRET).
-  - src/components/PaymentDialog.tsx: New component for payment processing with Cash/Online options, Razorpay integration, late fee calculation, and transaction storage.
+  - index.html: Added Frinext payment gateway integration.
+  - .env: Added Frinext API credentials.
+  - src/components/PaymentDialog.tsx: Enhanced component for payment processing with Cash/Online options via Frinext, payment waiting screen with cancel option, late fee calculation, transaction storage, and React hooks order violation fix.
+  - server.js: Removed UroPay endpoints, kept Frinext webhook handling and payment processing.
 - **UI Features**: Mobile-responsive design, smooth animations, professional styling, no horizontal scroll, touch-friendly interface, neumorphism cards, bottom navigation, advanced filtering with year dropdown, real-time expense editing.
 
 ## What's Working
@@ -76,8 +77,9 @@
     - **Predictive Analytics**: Comprehensive forecasting for expenses and maintenance schedules
 - **Member Features**:
   - Dashboard with personal bills, notices, expenses, and profile management.
-  - **Payment Gateway**: Complete Razorpay test mode integration with Cash/Online payment options.
-  - **Pay Now Dialog**: Opens payment dialog with Cash (instant) and Online (UPI) options.
+  - **Payment Gateway**: Complete Frinext payment gateway integration with Cash/Online payment options.
+  - **Pay Now Dialog**: Opens payment dialog with Cash (instant) and Online (UPI) options via Frinext.
+  - **Payment Waiting Screen**: Shows countdown timer and cancel option during payment processing.
   - **Late Fee Calculation**: Automatic inclusion of late fees in bill amounts.
   - **Transaction Tracking**: Saves detailed payment information in member profiles.
   - **Receipt Generation**: Automatic receipt creation with transaction details.
@@ -138,6 +140,13 @@
   - **Server-Side Processing**: Express.js backend with Multer file upload and Firebase integration
   - **Visual Feedback**: Progress bars, success/error states, and imported data badges
   - **Complete Cleanup**: Delete imported data from both bills and expenses collections
+- **Payment Gateway Migration**: Complete migration from Razorpay to Frinext payment gateway:
+  - **Removed UroPay**: Completely removed UroPay integration and endpoints
+  - **Frinext Only**: Streamlined to single payment gateway for simplicity
+  - **Payment Waiting Screen**: Added countdown timer and cancel option during payment processing
+  - **Cancel Functionality**: Users can cancel payment anytime before completion
+  - **React Hooks Fix**: Fixed "Rendered more hooks than during previous render" error by moving all hooks before early returns
+  - **Enhanced UX**: Professional waiting screen with progress bar and time remaining display
 
 ## Your Actions Taken
 - Enabled Firebase Auth (Email/Password) with user registration and approval workflow.
@@ -164,7 +173,7 @@
 5. **Test Approval Workflow**: As admin, go to Members → Pending Members → Approve the new member.
 6. **Test Real-time Updates**: Notice instant updates when approval status changes.
 7. **Test Mobile Navigation**: On mobile, use bottom navbar and hamburger menu for navigation.
-8. **Test Payment Gateway**: As a member, click "Pay Now" on pending bills, test both Cash and Online (UPI) payment options, verify transaction details in receipts.
+8. **Test Payment Gateway**: As a member, click "Pay Now" on pending bills, test both Cash (instant) and Online (UPI) payment options via Frinext, experience the payment waiting screen with countdown timer and cancel option, verify transaction details in receipts.
 9. **Test Enhanced ML Features**: As admin, go to "AI Insights" tab to see 12 comprehensive ML-powered analytics including expense forecasting, anomaly detection, member engagement analysis, payment behavior tracking, maintenance predictions, and smart budgeting recommendations.
 10. **Test Import Dataset Feature**: As admin, go to Expense Management → Import Dataset to upload CSV/Excel/JSON files, test smart categorization, multi-month bill creation, progress bars, and delete functionality on both desktop and mobile.
 
@@ -262,7 +271,7 @@ If you're cloning this repository from GitHub for the first time, follow these s
 - TanStack Query 5.83.0
 - Recharts 2.15.4
 - Chart.js 4.5.0
-- **Razorpay**: Payment gateway integration (checkout.js loaded via CDN)
+- **Frinext**: Payment gateway integration with webhook handling
 - **ML Libraries**:
   - TensorFlow.js (@tensorflow/tfjs) - Browser-based machine learning
   - TensorFlow.js Visualization (@tensorflow/tfjs-vis) - ML model visualization
@@ -280,4 +289,4 @@ If you're cloning this repository from GitHub for the first time, follow these s
   - UUID - Unique identifier generation
 
 ## Current Status
-The app is fully functional with professional UI/UX, complete mobile refactoring, real-time updates, complete approval workflow, and **Razorpay test mode payment gateway integration**. All syntax errors have been resolved and the development server runs successfully. Desktop views remain unchanged while mobile has been completely redesigned with modern app-like interface. Payment gateway is currently in test mode with full Cash/Online payment functionality - will be switched to live mode soon.
+The app is fully functional with professional UI/UX, complete mobile refactoring, real-time updates, complete approval workflow, and **Frinext payment gateway integration with payment waiting screen and cancel option**. All syntax errors have been resolved, React hooks order violation fixed, and the development server runs successfully. Desktop views remain unchanged while mobile has been completely redesigned with modern app-like interface. Payment gateway includes Cash (instant) and Online (UPI) payment options with automatic transaction tracking, late fee calculation, and receipt generation. UroPay has been completely removed for streamlined single-gateway approach.

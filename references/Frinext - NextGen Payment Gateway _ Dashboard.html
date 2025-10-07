@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<!-- saved from url=(0035)https://frinext.com/auth/apidetails -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width initial-scale=1.0">
+    <title>Frinext - NextGen Payment Gateway | Dashboard</title>
+    <!-- GLOBAL MAINLY STYLES-->
+    <link href="./Frinext - NextGen Payment Gateway _ Dashboard_files/serve-css.php" rel="stylesheet">
+    <link href="./Frinext - NextGen Payment Gateway _ Dashboard_files/font-awesome.min.css" rel="stylesheet">
+    <link href="./Frinext - NextGen Payment Gateway _ Dashboard_files/themify-icons.css" rel="stylesheet">
+    <!-- PLUGINS STYLES-->
+    <link href="./Frinext - NextGen Payment Gateway _ Dashboard_files/jquery-jvectormap-2.0.3.css" rel="stylesheet">
+    <!-- THEME STYLES-->
+    <script src="./Frinext - NextGen Payment Gateway _ Dashboard_files/sweetalert2@11"></script><style>:root{--swal2-outline: 0 0 0 3px rgba(100, 150, 200, 0.5);--swal2-container-padding: 0.625em;--swal2-backdrop: rgba(0, 0, 0, 0.4);--swal2-backdrop-transition: background-color 0.1s;--swal2-width: 32em;--swal2-padding: 0 0 1.25em;--swal2-border: none;--swal2-border-radius: 0.3125rem;--swal2-background: white;--swal2-color: #545454;--swal2-show-animation: swal2-show 0.3s;--swal2-hide-animation: swal2-hide 0.15s forwards;--swal2-icon-zoom: 1;--swal2-icon-animations: true;--swal2-title-padding: 0.8em 1em 0;--swal2-html-container-padding: 1em 1.6em 0.3em;--swal2-input-border: 1px solid #d9d9d9;--swal2-input-border-radius: 0.1875em;--swal2-input-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.06), 0 0 0 3px transparent;--swal2-input-background: transparent;--swal2-input-transition: border-color 0.2s, box-shadow 0.2s;--swal2-input-hover-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.06), 0 0 0 3px transparent;--swal2-input-focus-border: 1px solid #b4dbed;--swal2-input-focus-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.06), 0 0 0 3px $swal2-outline-color;--swal2-progress-step-background: #add8e6;--swal2-validation-message-background: #f0f0f0;--swal2-validation-message-color: #666;--swal2-footer-border-color: #eee;--swal2-footer-background: transparent;--swal2-footer-color: inherit;--swal2-timer-progress-bar-background: rgba(0, 0, 0, 0.3);--swal2-close-button-position: initial;--swal2-close-button-inset: auto;--swal2-close-button-font-size: 2.5em;--swal2-close-button-color: #ccc;--swal2-close-button-transition: color 0.2s, box-shadow 0.2s;--swal2-close-button-outline: initial;--swal2-close-button-box-shadow: inset 0 0 0 3px transparent;--swal2-close-button-focus-box-shadow: inset var(--swal2-outline);--swal2-close-button-hover-transform: none;--swal2-actions-justify-content: center;--swal2-actions-width: auto;--swal2-actions-margin: 1.25em auto 0;--swal2-actions-padding: 0;--swal2-actions-border-radius: 0;--swal2-actions-background: transparent;--swal2-action-button-transition: background-color 0.2s, box-shadow 0.2s;--swal2-action-button-hover: black 10%;--swal2-action-button-active: black 10%;--swal2-confirm-button-box-shadow: none;--swal2-confirm-button-border-radius: 0.25em;--swal2-confirm-button-background-color: #7066e0;--swal2-confirm-button-color: #fff;--swal2-deny-button-box-shadow: none;--swal2-deny-button-border-radius: 0.25em;--swal2-deny-button-background-color: #dc3741;--swal2-deny-button-color: #fff;--swal2-cancel-button-box-shadow: none;--swal2-cancel-button-border-radius: 0.25em;--swal2-cancel-button-background-color: #6e7881;--swal2-cancel-button-color: #fff;--swal2-toast-show-animation: swal2-toast-show 0.5s;--swal2-toast-hide-animation: swal2-toast-hide 0.1s forwards;--swal2-toast-border: none;--swal2-toast-box-shadow: 0 0 1px hsl(0deg 0% 0% / 0.075), 0 1px 2px hsl(0deg 0% 0% / 0.075), 1px 2px 4px hsl(0deg 0% 0% / 0.075), 1px 3px 8px hsl(0deg 0% 0% / 0.075), 2px 4px 16px hsl(0deg 0% 0% / 0.075)}[data-swal2-theme=dark]{--swal2-dark-theme-black: #19191a;--swal2-dark-theme-white: #e1e1e1;--swal2-background: var(--swal2-dark-theme-black);--swal2-color: var(--swal2-dark-theme-white);--swal2-footer-border-color: #555;--swal2-input-background: color-mix(in srgb, var(--swal2-dark-theme-black), var(--swal2-dark-theme-white) 10%);--swal2-validation-message-background: color-mix( in srgb, var(--swal2-dark-theme-black), var(--swal2-dark-theme-white) 10% );--swal2-validation-message-color: var(--swal2-dark-theme-white);--swal2-timer-progress-bar-background: rgba(255, 255, 255, 0.7)}@media(prefers-color-scheme: dark){[data-swal2-theme=auto]{--swal2-dark-theme-black: #19191a;--swal2-dark-theme-white: #e1e1e1;--swal2-background: var(--swal2-dark-theme-black);--swal2-color: var(--swal2-dark-theme-white);--swal2-footer-border-color: #555;--swal2-input-background: color-mix(in srgb, var(--swal2-dark-theme-black), var(--swal2-dark-theme-white) 10%);--swal2-validation-message-background: color-mix( in srgb, var(--swal2-dark-theme-black), var(--swal2-dark-theme-white) 10% );--swal2-validation-message-color: var(--swal2-dark-theme-white);--swal2-timer-progress-bar-background: rgba(255, 255, 255, 0.7)}}body.swal2-shown:not(.swal2-no-backdrop,.swal2-toast-shown){overflow:hidden}body.swal2-height-auto{height:auto !important}body.swal2-no-backdrop .swal2-container{background-color:rgba(0,0,0,0) !important;pointer-events:none}body.swal2-no-backdrop .swal2-container .swal2-popup{pointer-events:all}body.swal2-no-backdrop .swal2-container .swal2-modal{box-shadow:0 0 10px var(--swal2-backdrop)}body.swal2-toast-shown .swal2-container{box-sizing:border-box;width:360px;max-width:100%;background-color:rgba(0,0,0,0);pointer-events:none}body.swal2-toast-shown .swal2-container.swal2-top{inset:0 auto auto 50%;transform:translateX(-50%)}body.swal2-toast-shown .swal2-container.swal2-top-end,body.swal2-toast-shown .swal2-container.swal2-top-right{inset:0 0 auto auto}body.swal2-toast-shown .swal2-container.swal2-top-start,body.swal2-toast-shown .swal2-container.swal2-top-left{inset:0 auto auto 0}body.swal2-toast-shown .swal2-container.swal2-center-start,body.swal2-toast-shown .swal2-container.swal2-center-left{inset:50% auto auto 0;transform:translateY(-50%)}body.swal2-toast-shown .swal2-container.swal2-center{inset:50% auto auto 50%;transform:translate(-50%, -50%)}body.swal2-toast-shown .swal2-container.swal2-center-end,body.swal2-toast-shown .swal2-container.swal2-center-right{inset:50% 0 auto auto;transform:translateY(-50%)}body.swal2-toast-shown .swal2-container.swal2-bottom-start,body.swal2-toast-shown .swal2-container.swal2-bottom-left{inset:auto auto 0 0}body.swal2-toast-shown .swal2-container.swal2-bottom{inset:auto auto 0 50%;transform:translateX(-50%)}body.swal2-toast-shown .swal2-container.swal2-bottom-end,body.swal2-toast-shown .swal2-container.swal2-bottom-right{inset:auto 0 0 auto}@media print{body.swal2-shown:not(.swal2-no-backdrop,.swal2-toast-shown){overflow-y:scroll !important}body.swal2-shown:not(.swal2-no-backdrop,.swal2-toast-shown)>[aria-hidden=true]{display:none}body.swal2-shown:not(.swal2-no-backdrop,.swal2-toast-shown) .swal2-container{position:static !important}}div:where(.swal2-container){display:grid;position:fixed;z-index:1060;inset:0;box-sizing:border-box;grid-template-areas:"top-start     top            top-end" "center-start  center         center-end" "bottom-start  bottom-center  bottom-end";grid-template-rows:minmax(min-content, auto) minmax(min-content, auto) minmax(min-content, auto);height:100%;padding:var(--swal2-container-padding);overflow-x:hidden;transition:var(--swal2-backdrop-transition);-webkit-overflow-scrolling:touch}div:where(.swal2-container).swal2-backdrop-show,div:where(.swal2-container).swal2-noanimation{background:var(--swal2-backdrop)}div:where(.swal2-container).swal2-backdrop-hide{background:rgba(0,0,0,0) !important}div:where(.swal2-container).swal2-top-start,div:where(.swal2-container).swal2-center-start,div:where(.swal2-container).swal2-bottom-start{grid-template-columns:minmax(0, 1fr) auto auto}div:where(.swal2-container).swal2-top,div:where(.swal2-container).swal2-center,div:where(.swal2-container).swal2-bottom{grid-template-columns:auto minmax(0, 1fr) auto}div:where(.swal2-container).swal2-top-end,div:where(.swal2-container).swal2-center-end,div:where(.swal2-container).swal2-bottom-end{grid-template-columns:auto auto minmax(0, 1fr)}div:where(.swal2-container).swal2-top-start>.swal2-popup{align-self:start}div:where(.swal2-container).swal2-top>.swal2-popup{grid-column:2;place-self:start center}div:where(.swal2-container).swal2-top-end>.swal2-popup,div:where(.swal2-container).swal2-top-right>.swal2-popup{grid-column:3;place-self:start end}div:where(.swal2-container).swal2-center-start>.swal2-popup,div:where(.swal2-container).swal2-center-left>.swal2-popup{grid-row:2;align-self:center}div:where(.swal2-container).swal2-center>.swal2-popup{grid-column:2;grid-row:2;place-self:center center}div:where(.swal2-container).swal2-center-end>.swal2-popup,div:where(.swal2-container).swal2-center-right>.swal2-popup{grid-column:3;grid-row:2;place-self:center end}div:where(.swal2-container).swal2-bottom-start>.swal2-popup,div:where(.swal2-container).swal2-bottom-left>.swal2-popup{grid-column:1;grid-row:3;align-self:end}div:where(.swal2-container).swal2-bottom>.swal2-popup{grid-column:2;grid-row:3;place-self:end center}div:where(.swal2-container).swal2-bottom-end>.swal2-popup,div:where(.swal2-container).swal2-bottom-right>.swal2-popup{grid-column:3;grid-row:3;place-self:end end}div:where(.swal2-container).swal2-grow-row>.swal2-popup,div:where(.swal2-container).swal2-grow-fullscreen>.swal2-popup{grid-column:1/4;width:100%}div:where(.swal2-container).swal2-grow-column>.swal2-popup,div:where(.swal2-container).swal2-grow-fullscreen>.swal2-popup{grid-row:1/4;align-self:stretch}div:where(.swal2-container).swal2-no-transition{transition:none !important}div:where(.swal2-container)[popover]{width:auto;border:0}div:where(.swal2-container) div:where(.swal2-popup){display:none;position:relative;box-sizing:border-box;grid-template-columns:minmax(0, 100%);width:var(--swal2-width);max-width:100%;padding:var(--swal2-padding);border:var(--swal2-border);border-radius:var(--swal2-border-radius);background:var(--swal2-background);color:var(--swal2-color);font-family:inherit;font-size:1rem;container-name:swal2-popup}div:where(.swal2-container) div:where(.swal2-popup):focus{outline:none}div:where(.swal2-container) div:where(.swal2-popup).swal2-loading{overflow-y:hidden}div:where(.swal2-container) div:where(.swal2-popup).swal2-draggable{cursor:grab}div:where(.swal2-container) div:where(.swal2-popup).swal2-draggable div:where(.swal2-icon){cursor:grab}div:where(.swal2-container) div:where(.swal2-popup).swal2-dragging{cursor:grabbing}div:where(.swal2-container) div:where(.swal2-popup).swal2-dragging div:where(.swal2-icon){cursor:grabbing}div:where(.swal2-container) h2:where(.swal2-title){position:relative;max-width:100%;margin:0;padding:var(--swal2-title-padding);color:inherit;font-size:1.875em;font-weight:600;text-align:center;text-transform:none;overflow-wrap:break-word;cursor:initial}div:where(.swal2-container) div:where(.swal2-actions){display:flex;z-index:1;box-sizing:border-box;flex-wrap:wrap;align-items:center;justify-content:var(--swal2-actions-justify-content);width:var(--swal2-actions-width);margin:var(--swal2-actions-margin);padding:var(--swal2-actions-padding);border-radius:var(--swal2-actions-border-radius);background:var(--swal2-actions-background)}div:where(.swal2-container) div:where(.swal2-loader){display:none;align-items:center;justify-content:center;width:2.2em;height:2.2em;margin:0 1.875em;animation:swal2-rotate-loading 1.5s linear 0s infinite normal;border-width:.25em;border-style:solid;border-radius:100%;border-color:#2778c4 rgba(0,0,0,0) #2778c4 rgba(0,0,0,0)}div:where(.swal2-container) button:where(.swal2-styled){margin:.3125em;padding:.625em 1.1em;transition:var(--swal2-action-button-transition);border:none;box-shadow:0 0 0 3px rgba(0,0,0,0);font-weight:500}div:where(.swal2-container) button:where(.swal2-styled):not([disabled]){cursor:pointer}div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-confirm){border-radius:var(--swal2-confirm-button-border-radius);background:initial;background-color:var(--swal2-confirm-button-background-color);box-shadow:var(--swal2-confirm-button-box-shadow);color:var(--swal2-confirm-button-color);font-size:1em}div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-confirm):hover{background-color:color-mix(in srgb, var(--swal2-confirm-button-background-color), var(--swal2-action-button-hover))}div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-confirm):active{background-color:color-mix(in srgb, var(--swal2-confirm-button-background-color), var(--swal2-action-button-active))}div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-deny){border-radius:var(--swal2-deny-button-border-radius);background:initial;background-color:var(--swal2-deny-button-background-color);box-shadow:var(--swal2-deny-button-box-shadow);color:var(--swal2-deny-button-color);font-size:1em}div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-deny):hover{background-color:color-mix(in srgb, var(--swal2-deny-button-background-color), var(--swal2-action-button-hover))}div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-deny):active{background-color:color-mix(in srgb, var(--swal2-deny-button-background-color), var(--swal2-action-button-active))}div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-cancel){border-radius:var(--swal2-cancel-button-border-radius);background:initial;background-color:var(--swal2-cancel-button-background-color);box-shadow:var(--swal2-cancel-button-box-shadow);color:var(--swal2-cancel-button-color);font-size:1em}div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-cancel):hover{background-color:color-mix(in srgb, var(--swal2-cancel-button-background-color), var(--swal2-action-button-hover))}div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-cancel):active{background-color:color-mix(in srgb, var(--swal2-cancel-button-background-color), var(--swal2-action-button-active))}div:where(.swal2-container) button:where(.swal2-styled):focus-visible{outline:none;box-shadow:var(--swal2-action-button-focus-box-shadow)}div:where(.swal2-container) button:where(.swal2-styled)[disabled]:not(.swal2-loading){opacity:.4}div:where(.swal2-container) button:where(.swal2-styled)::-moz-focus-inner{border:0}div:where(.swal2-container) div:where(.swal2-footer){margin:1em 0 0;padding:1em 1em 0;border-top:1px solid var(--swal2-footer-border-color);background:var(--swal2-footer-background);color:var(--swal2-footer-color);font-size:1em;text-align:center;cursor:initial}div:where(.swal2-container) .swal2-timer-progress-bar-container{position:absolute;right:0;bottom:0;left:0;grid-column:auto !important;overflow:hidden;border-bottom-right-radius:var(--swal2-border-radius);border-bottom-left-radius:var(--swal2-border-radius)}div:where(.swal2-container) div:where(.swal2-timer-progress-bar){width:100%;height:.25em;background:var(--swal2-timer-progress-bar-background)}div:where(.swal2-container) img:where(.swal2-image){max-width:100%;margin:2em auto 1em;cursor:initial}div:where(.swal2-container) button:where(.swal2-close){position:var(--swal2-close-button-position);inset:var(--swal2-close-button-inset);z-index:2;align-items:center;justify-content:center;width:1.2em;height:1.2em;margin-top:0;margin-right:0;margin-bottom:-1.2em;padding:0;overflow:hidden;transition:var(--swal2-close-button-transition);border:none;border-radius:var(--swal2-border-radius);outline:var(--swal2-close-button-outline);background:rgba(0,0,0,0);color:var(--swal2-close-button-color);font-family:monospace;font-size:var(--swal2-close-button-font-size);cursor:pointer;justify-self:end}div:where(.swal2-container) button:where(.swal2-close):hover{transform:var(--swal2-close-button-hover-transform);background:rgba(0,0,0,0);color:#f27474}div:where(.swal2-container) button:where(.swal2-close):focus-visible{outline:none;box-shadow:var(--swal2-close-button-focus-box-shadow)}div:where(.swal2-container) button:where(.swal2-close)::-moz-focus-inner{border:0}div:where(.swal2-container) div:where(.swal2-html-container){z-index:1;justify-content:center;margin:0;padding:var(--swal2-html-container-padding);overflow:auto;color:inherit;font-size:1.125em;font-weight:normal;line-height:normal;text-align:center;overflow-wrap:break-word;word-break:break-word;cursor:initial}div:where(.swal2-container) input:where(.swal2-input),div:where(.swal2-container) input:where(.swal2-file),div:where(.swal2-container) textarea:where(.swal2-textarea),div:where(.swal2-container) select:where(.swal2-select),div:where(.swal2-container) div:where(.swal2-radio),div:where(.swal2-container) label:where(.swal2-checkbox){margin:1em 2em 3px}div:where(.swal2-container) input:where(.swal2-input),div:where(.swal2-container) input:where(.swal2-file),div:where(.swal2-container) textarea:where(.swal2-textarea){box-sizing:border-box;width:auto;transition:var(--swal2-input-transition);border:var(--swal2-input-border);border-radius:var(--swal2-input-border-radius);background:var(--swal2-input-background);box-shadow:var(--swal2-input-box-shadow);color:inherit;font-size:1.125em}div:where(.swal2-container) input:where(.swal2-input).swal2-inputerror,div:where(.swal2-container) input:where(.swal2-file).swal2-inputerror,div:where(.swal2-container) textarea:where(.swal2-textarea).swal2-inputerror{border-color:#f27474 !important;box-shadow:0 0 2px #f27474 !important}div:where(.swal2-container) input:where(.swal2-input):hover,div:where(.swal2-container) input:where(.swal2-file):hover,div:where(.swal2-container) textarea:where(.swal2-textarea):hover{box-shadow:var(--swal2-input-hover-box-shadow)}div:where(.swal2-container) input:where(.swal2-input):focus,div:where(.swal2-container) input:where(.swal2-file):focus,div:where(.swal2-container) textarea:where(.swal2-textarea):focus{border:var(--swal2-input-focus-border);outline:none;box-shadow:var(--swal2-input-focus-box-shadow)}div:where(.swal2-container) input:where(.swal2-input)::placeholder,div:where(.swal2-container) input:where(.swal2-file)::placeholder,div:where(.swal2-container) textarea:where(.swal2-textarea)::placeholder{color:#ccc}div:where(.swal2-container) .swal2-range{margin:1em 2em 3px;background:var(--swal2-background)}div:where(.swal2-container) .swal2-range input{width:80%}div:where(.swal2-container) .swal2-range output{width:20%;color:inherit;font-weight:600;text-align:center}div:where(.swal2-container) .swal2-range input,div:where(.swal2-container) .swal2-range output{height:2.625em;padding:0;font-size:1.125em;line-height:2.625em}div:where(.swal2-container) .swal2-input{height:2.625em;padding:0 .75em}div:where(.swal2-container) .swal2-file{width:75%;margin-right:auto;margin-left:auto;background:var(--swal2-input-background);font-size:1.125em}div:where(.swal2-container) .swal2-textarea{height:6.75em;padding:.75em}div:where(.swal2-container) .swal2-select{min-width:50%;max-width:100%;padding:.375em .625em;background:var(--swal2-input-background);color:inherit;font-size:1.125em}div:where(.swal2-container) .swal2-radio,div:where(.swal2-container) .swal2-checkbox{align-items:center;justify-content:center;background:var(--swal2-background);color:inherit}div:where(.swal2-container) .swal2-radio label,div:where(.swal2-container) .swal2-checkbox label{margin:0 .6em;font-size:1.125em}div:where(.swal2-container) .swal2-radio input,div:where(.swal2-container) .swal2-checkbox input{flex-shrink:0;margin:0 .4em}div:where(.swal2-container) label:where(.swal2-input-label){display:flex;justify-content:center;margin:1em auto 0}div:where(.swal2-container) div:where(.swal2-validation-message){align-items:center;justify-content:center;margin:1em 0 0;padding:.625em;overflow:hidden;background:var(--swal2-validation-message-background);color:var(--swal2-validation-message-color);font-size:1em;font-weight:300}div:where(.swal2-container) div:where(.swal2-validation-message)::before{content:"!";display:inline-block;width:1.5em;min-width:1.5em;height:1.5em;margin:0 .625em;border-radius:50%;background-color:#f27474;color:#fff;font-weight:600;line-height:1.5em;text-align:center}div:where(.swal2-container) .swal2-progress-steps{flex-wrap:wrap;align-items:center;max-width:100%;margin:1.25em auto;padding:0;background:rgba(0,0,0,0);font-weight:600}div:where(.swal2-container) .swal2-progress-steps li{display:inline-block;position:relative}div:where(.swal2-container) .swal2-progress-steps .swal2-progress-step{z-index:20;flex-shrink:0;width:2em;height:2em;border-radius:2em;background:#2778c4;color:#fff;line-height:2em;text-align:center}div:where(.swal2-container) .swal2-progress-steps .swal2-progress-step.swal2-active-progress-step{background:#2778c4}div:where(.swal2-container) .swal2-progress-steps .swal2-progress-step.swal2-active-progress-step~.swal2-progress-step{background:var(--swal2-progress-step-background);color:#fff}div:where(.swal2-container) .swal2-progress-steps .swal2-progress-step.swal2-active-progress-step~.swal2-progress-step-line{background:var(--swal2-progress-step-background)}div:where(.swal2-container) .swal2-progress-steps .swal2-progress-step-line{z-index:10;flex-shrink:0;width:2.5em;height:.4em;margin:0 -1px;background:#2778c4}div:where(.swal2-icon){position:relative;box-sizing:content-box;justify-content:center;width:5em;height:5em;margin:2.5em auto .6em;zoom:var(--swal2-icon-zoom);border:.25em solid rgba(0,0,0,0);border-radius:50%;border-color:#000;font-family:inherit;line-height:5em;cursor:default;user-select:none}div:where(.swal2-icon) .swal2-icon-content{display:flex;align-items:center;font-size:3.75em}div:where(.swal2-icon).swal2-error{border-color:#f27474;color:#f27474}div:where(.swal2-icon).swal2-error .swal2-x-mark{position:relative;flex-grow:1}div:where(.swal2-icon).swal2-error [class^=swal2-x-mark-line]{display:block;position:absolute;top:2.3125em;width:2.9375em;height:.3125em;border-radius:.125em;background-color:#f27474}div:where(.swal2-icon).swal2-error [class^=swal2-x-mark-line][class$=left]{left:1.0625em;transform:rotate(45deg)}div:where(.swal2-icon).swal2-error [class^=swal2-x-mark-line][class$=right]{right:1em;transform:rotate(-45deg)}@container swal2-popup style(--swal2-icon-animations:true){div:where(.swal2-icon).swal2-error.swal2-icon-show{animation:swal2-animate-error-icon .5s}div:where(.swal2-icon).swal2-error.swal2-icon-show .swal2-x-mark{animation:swal2-animate-error-x-mark .5s}}div:where(.swal2-icon).swal2-warning{border-color:#f8bb86;color:#f8bb86}@container swal2-popup style(--swal2-icon-animations:true){div:where(.swal2-icon).swal2-warning.swal2-icon-show{animation:swal2-animate-error-icon .5s}div:where(.swal2-icon).swal2-warning.swal2-icon-show .swal2-icon-content{animation:swal2-animate-i-mark .5s}}div:where(.swal2-icon).swal2-info{border-color:#3fc3ee;color:#3fc3ee}@container swal2-popup style(--swal2-icon-animations:true){div:where(.swal2-icon).swal2-info.swal2-icon-show{animation:swal2-animate-error-icon .5s}div:where(.swal2-icon).swal2-info.swal2-icon-show .swal2-icon-content{animation:swal2-animate-i-mark .8s}}div:where(.swal2-icon).swal2-question{border-color:#87adbd;color:#87adbd}@container swal2-popup style(--swal2-icon-animations:true){div:where(.swal2-icon).swal2-question.swal2-icon-show{animation:swal2-animate-error-icon .5s}div:where(.swal2-icon).swal2-question.swal2-icon-show .swal2-icon-content{animation:swal2-animate-question-mark .8s}}div:where(.swal2-icon).swal2-success{border-color:#a5dc86;color:#a5dc86}div:where(.swal2-icon).swal2-success [class^=swal2-success-circular-line]{position:absolute;width:3.75em;height:7.5em;border-radius:50%}div:where(.swal2-icon).swal2-success [class^=swal2-success-circular-line][class$=left]{top:-0.4375em;left:-2.0635em;transform:rotate(-45deg);transform-origin:3.75em 3.75em;border-radius:7.5em 0 0 7.5em}div:where(.swal2-icon).swal2-success [class^=swal2-success-circular-line][class$=right]{top:-0.6875em;left:1.875em;transform:rotate(-45deg);transform-origin:0 3.75em;border-radius:0 7.5em 7.5em 0}div:where(.swal2-icon).swal2-success .swal2-success-ring{position:absolute;z-index:2;top:-0.25em;left:-0.25em;box-sizing:content-box;width:100%;height:100%;border:.25em solid rgba(165,220,134,.3);border-radius:50%}div:where(.swal2-icon).swal2-success .swal2-success-fix{position:absolute;z-index:1;top:.5em;left:1.625em;width:.4375em;height:5.625em;transform:rotate(-45deg)}div:where(.swal2-icon).swal2-success [class^=swal2-success-line]{display:block;position:absolute;z-index:2;height:.3125em;border-radius:.125em;background-color:#a5dc86}div:where(.swal2-icon).swal2-success [class^=swal2-success-line][class$=tip]{top:2.875em;left:.8125em;width:1.5625em;transform:rotate(45deg)}div:where(.swal2-icon).swal2-success [class^=swal2-success-line][class$=long]{top:2.375em;right:.5em;width:2.9375em;transform:rotate(-45deg)}@container swal2-popup style(--swal2-icon-animations:true){div:where(.swal2-icon).swal2-success.swal2-icon-show .swal2-success-line-tip{animation:swal2-animate-success-line-tip .75s}div:where(.swal2-icon).swal2-success.swal2-icon-show .swal2-success-line-long{animation:swal2-animate-success-line-long .75s}div:where(.swal2-icon).swal2-success.swal2-icon-show .swal2-success-circular-line-right{animation:swal2-rotate-success-circular-line 4.25s ease-in}}[class^=swal2]{-webkit-tap-highlight-color:rgba(0,0,0,0)}.swal2-show{animation:var(--swal2-show-animation)}.swal2-hide{animation:var(--swal2-hide-animation)}.swal2-noanimation{transition:none}.swal2-scrollbar-measure{position:absolute;top:-9999px;width:50px;height:50px;overflow:scroll}.swal2-rtl .swal2-close{margin-right:initial;margin-left:0}.swal2-rtl .swal2-timer-progress-bar{right:0;left:auto}.swal2-toast{box-sizing:border-box;grid-column:1/4 !important;grid-row:1/4 !important;grid-template-columns:min-content auto min-content;padding:1em;overflow-y:hidden;border:var(--swal2-toast-border);background:var(--swal2-background);box-shadow:var(--swal2-toast-box-shadow);pointer-events:all}.swal2-toast>*{grid-column:2}.swal2-toast h2:where(.swal2-title){margin:.5em 1em;padding:0;font-size:1em;text-align:initial}.swal2-toast .swal2-loading{justify-content:center}.swal2-toast input:where(.swal2-input){height:2em;margin:.5em;font-size:1em}.swal2-toast .swal2-validation-message{font-size:1em}.swal2-toast div:where(.swal2-footer){margin:.5em 0 0;padding:.5em 0 0;font-size:.8em}.swal2-toast button:where(.swal2-close){grid-column:3/3;grid-row:1/99;align-self:center;width:.8em;height:.8em;margin:0;font-size:2em}.swal2-toast div:where(.swal2-html-container){margin:.5em 1em;padding:0;overflow:initial;font-size:1em;text-align:initial}.swal2-toast div:where(.swal2-html-container):empty{padding:0}.swal2-toast .swal2-loader{grid-column:1;grid-row:1/99;align-self:center;width:2em;height:2em;margin:.25em}.swal2-toast .swal2-icon{grid-column:1;grid-row:1/99;align-self:center;width:2em;min-width:2em;height:2em;margin:0 .5em 0 0}.swal2-toast .swal2-icon .swal2-icon-content{display:flex;align-items:center;font-size:1.8em;font-weight:bold}.swal2-toast .swal2-icon.swal2-success .swal2-success-ring{width:2em;height:2em}.swal2-toast .swal2-icon.swal2-error [class^=swal2-x-mark-line]{top:.875em;width:1.375em}.swal2-toast .swal2-icon.swal2-error [class^=swal2-x-mark-line][class$=left]{left:.3125em}.swal2-toast .swal2-icon.swal2-error [class^=swal2-x-mark-line][class$=right]{right:.3125em}.swal2-toast div:where(.swal2-actions){justify-content:flex-start;height:auto;margin:0;margin-top:.5em;padding:0 .5em}.swal2-toast button:where(.swal2-styled){margin:.25em .5em;padding:.4em .6em;font-size:1em}.swal2-toast .swal2-success{border-color:#a5dc86}.swal2-toast .swal2-success [class^=swal2-success-circular-line]{position:absolute;width:1.6em;height:3em;border-radius:50%}.swal2-toast .swal2-success [class^=swal2-success-circular-line][class$=left]{top:-0.8em;left:-0.5em;transform:rotate(-45deg);transform-origin:2em 2em;border-radius:4em 0 0 4em}.swal2-toast .swal2-success [class^=swal2-success-circular-line][class$=right]{top:-0.25em;left:.9375em;transform-origin:0 1.5em;border-radius:0 4em 4em 0}.swal2-toast .swal2-success .swal2-success-ring{width:2em;height:2em}.swal2-toast .swal2-success .swal2-success-fix{top:0;left:.4375em;width:.4375em;height:2.6875em}.swal2-toast .swal2-success [class^=swal2-success-line]{height:.3125em}.swal2-toast .swal2-success [class^=swal2-success-line][class$=tip]{top:1.125em;left:.1875em;width:.75em}.swal2-toast .swal2-success [class^=swal2-success-line][class$=long]{top:.9375em;right:.1875em;width:1.375em}@container swal2-popup style(--swal2-icon-animations:true){.swal2-toast .swal2-success.swal2-icon-show .swal2-success-line-tip{animation:swal2-toast-animate-success-line-tip .75s}.swal2-toast .swal2-success.swal2-icon-show .swal2-success-line-long{animation:swal2-toast-animate-success-line-long .75s}}.swal2-toast.swal2-show{animation:var(--swal2-toast-show-animation)}.swal2-toast.swal2-hide{animation:var(--swal2-toast-hide-animation)}@keyframes swal2-show{0%{transform:scale(0.7)}45%{transform:scale(1.05)}80%{transform:scale(0.95)}100%{transform:scale(1)}}@keyframes swal2-hide{0%{transform:scale(1);opacity:1}100%{transform:scale(0.5);opacity:0}}@keyframes swal2-animate-success-line-tip{0%{top:1.1875em;left:.0625em;width:0}54%{top:1.0625em;left:.125em;width:0}70%{top:2.1875em;left:-0.375em;width:3.125em}84%{top:3em;left:1.3125em;width:1.0625em}100%{top:2.8125em;left:.8125em;width:1.5625em}}@keyframes swal2-animate-success-line-long{0%{top:3.375em;right:2.875em;width:0}65%{top:3.375em;right:2.875em;width:0}84%{top:2.1875em;right:0;width:3.4375em}100%{top:2.375em;right:.5em;width:2.9375em}}@keyframes swal2-rotate-success-circular-line{0%{transform:rotate(-45deg)}5%{transform:rotate(-45deg)}12%{transform:rotate(-405deg)}100%{transform:rotate(-405deg)}}@keyframes swal2-animate-error-x-mark{0%{margin-top:1.625em;transform:scale(0.4);opacity:0}50%{margin-top:1.625em;transform:scale(0.4);opacity:0}80%{margin-top:-0.375em;transform:scale(1.15)}100%{margin-top:0;transform:scale(1);opacity:1}}@keyframes swal2-animate-error-icon{0%{transform:rotateX(100deg);opacity:0}100%{transform:rotateX(0deg);opacity:1}}@keyframes swal2-rotate-loading{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}@keyframes swal2-animate-question-mark{0%{transform:rotateY(-360deg)}100%{transform:rotateY(0)}}@keyframes swal2-animate-i-mark{0%{transform:rotateZ(45deg);opacity:0}25%{transform:rotateZ(-25deg);opacity:.4}50%{transform:rotateZ(15deg);opacity:.8}75%{transform:rotateZ(-5deg);opacity:1}100%{transform:rotateX(0);opacity:1}}@keyframes swal2-toast-show{0%{transform:translateY(-0.625em) rotateZ(2deg)}33%{transform:translateY(0) rotateZ(-2deg)}66%{transform:translateY(0.3125em) rotateZ(2deg)}100%{transform:translateY(0) rotateZ(0deg)}}@keyframes swal2-toast-hide{100%{transform:rotateZ(1deg);opacity:0}}@keyframes swal2-toast-animate-success-line-tip{0%{top:.5625em;left:.0625em;width:0}54%{top:.125em;left:.125em;width:0}70%{top:.625em;left:-0.25em;width:1.625em}84%{top:1.0625em;left:.75em;width:.5em}100%{top:1.125em;left:.1875em;width:.75em}}@keyframes swal2-toast-animate-success-line-long{0%{top:1.625em;right:1.375em;width:0}65%{top:1.25em;right:.9375em;width:0}84%{top:.9375em;right:0;width:1.125em}100%{top:.9375em;right:.1875em;width:1.375em}}</style>
+    <link rel="stylesheet" href="./Frinext - NextGen Payment Gateway _ Dashboard_files/serve-css(1).php">
+    <!-- PAGE LEVEL STYLES-->
+
+    <script type="text/javascript">
+        if (window.history.replaceState) {
+            window.history.replaceState(null, null, window.location.href);
+        }
+    </script>
+    <style>
+        body:not(.fixed-layout).sidebar-mini .content-wrapper {
+            width: 100%;
+            margin-left: 0 !important;
+        }
+
+        .header .dropdown-inbox,
+        .header .dropdown-notification {
+            display: none;
+        }
+    </style>
+<style>
+    body {
+        line-height: 1.2;
+    }
+
+    a {
+        text-decoration: none !important;
+    }
+
+    .hand {
+        cursor: pointer;
+    }
+
+    .table-sm td,
+    .table th {
+        font-size: 0.98458em;
+        border-color: #ebedf2 !important;
+        padding: 0.4375rem !important;
+    }
+
+    .bg-brown {
+        background: brown !important;
+    }
+
+    .d-none {
+        display: none;
+    }
+
+    .m-primary {
+        background: #285d29 !important;
+        color: white !important;
+    }
+
+    [type="checkbox"]:not(:checked),
+    [type="checkbox"]:checked {
+        position: unset !important;
+        left: unset !important;
+    }
+
+
+    .form-check {
+        display: block;
+        min-height: 1.3125rem;
+        padding-left: 1.8em;
+        margin-bottom: 0.125rem;
+    }
+
+    .form-check .form-check-input {
+        float: left;
+        margin-left: -1.8em;
+    }
+
+    .form-check-input {
+        width: 1em;
+        height: 1em;
+        margin-top: 0.1em;
+        vertical-align: top;
+        background-color: #fff;
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: contain;
+        border: 1px solid rgba(0, 0, 0, 0.25);
+        appearance: none;
+        color-adjust: exact;
+    }
+
+    .form-check-input[type=checkbox] {
+        border-radius: 0.15em;
+    }
+
+    .form-check-input[type=radio] {
+        border-radius: 50%;
+    }
+
+    .form-check-input:active {
+        filter: brightness(90%);
+    }
+
+    .form-check-input:focus {
+        border-color: #cbd1db;
+        outline: 0;
+        box-shadow: none;
+    }
+
+    .form-check-input:checked {
+        background-color: #42bb37;
+        border-color: #42bb37;
+    }
+
+    .form-check-input:checked[type=checkbox] {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M6 10l3 3l6-6'/%3e%3c/svg%3e");
+    }
+
+    .form-check-input:checked[type=radio] {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='2' fill='%23fff'/%3e%3c/svg%3e");
+    }
+
+    .form-check-input[type=checkbox]:indeterminate {
+        background-color: #42bb37;
+        border-color: #42bb37;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M6 10h8'/%3e%3c/svg%3e");
+    }
+
+    .form-check-input:disabled {
+        pointer-events: none;
+        filter: none;
+        opacity: 0.5;
+    }
+
+    .form-check-input[disabled]~.form-check-label,
+    .form-check-input:disabled~.form-check-label {
+        opacity: 0.5;
+    }
+
+    .form-switch {
+        padding-left: 2.5em;
+    }
+
+    .form-switch .form-check-input {
+        width: 2em;
+        margin-left: -2.5em;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='rgba%280, 0, 0, 0.25%29'/%3e%3c/svg%3e");
+        background-position: left center;
+        border-radius: 2em;
+        transition: background-position 0.15s ease-in-out;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .form-switch .form-check-input {
+            transition: none;
+        }
+    }
+
+    .form-switch .form-check-input:focus {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23cbd1db'/%3e%3c/svg%3e");
+    }
+
+    .form-switch .form-check-input:checked {
+        background-position: right center;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e");
+    }
+
+    .form-check-inline {
+        display: inline-block;
+        margin-right: 1rem;
+    }
+
+    .btn-check {
+        position: absolute;
+        clip: rect(0, 0, 0, 0);
+        pointer-events: none;
+    }
+
+    .btn-check[disabled]+.btn,
+    .wizard>.actions .btn-check[disabled]+a,
+    div.tox .btn-check[disabled]+.tox-button,
+    .swal2-popup .swal2-actions .btn-check[disabled]+button,
+    .fc .btn-check[disabled]+.fc-button-primary,
+    .btn-check:disabled+.btn,
+    .wizard>.actions .btn-check:disabled+a,
+    div.tox .btn-check:disabled+.tox-button,
+    .swal2-popup .swal2-actions .btn-check:disabled+button,
+    .fc .btn-check:disabled+.fc-button-primary {
+        pointer-events: none;
+        filter: none;
+        opacity: 0.65;
+    }
+
+    .card .card-category {
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .card {
+        border-radius: 5px !important;
+    }
+
+    .card .card-title {
+        font-size: 15px;
+        font-weight: 400;
+        line-height: 1.6;
+    }
+
+    .Success {
+        color: #ffffff;
+        background-color: #59d05d;
+    }
+
+    .Failed {
+        color: #ffffff;
+        background-color: #ff646d;
+    }
+
+    .Pending {
+        color: #ffffff;
+        background: #fbad4c;
+    }
+
+    .rl-loading-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 10px;
+    }
+
+    div#loading_ajax {
+
+        background: rgba(0, 0, 0, 0.4);
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        top: 0;
+        z-index: 9998;
+    }
+
+    .rl-loading-thumb {
+        width: 10px;
+        height: 40px;
+        background-color: #41f3fd;
+        margin: 4px;
+        box-shadow: 0 0 12px 3px #0882ff;
+        animation: rl-loading 1.5s ease-in-out infinite;
+    }
+
+    .rl-loading-thumb-1 {
+        animation-delay: 0s;
+    }
+
+    .rl-loading-thumb-2 {
+        animation-delay: 0.5s;
+    }
+
+    .rl-loading-thumb-3 {
+        animation-delay: 1s;
+    }
+
+    @keyframes rl-loading {
+        0% {}
+
+        20% {
+            background: white;
+            transform: scale(1.5);
+        }
+
+        40% {
+            background: #41f3fd;
+            transform: scale(1);
+        }
+    }
+</style></head>
+
+
+
+
+
+
+
+<body class="has-animation">
+
+    <div class="rl-loading-container" id="loading_ajax" style="display: none;">
+        <div class="rl-loading-thumb rl-loading-thumb-1"></div>
+        <div class="rl-loading-thumb rl-loading-thumb-2"></div>
+        <div class="rl-loading-thumb rl-loading-thumb-3"></div>
+    </div>
+
+    <div class="page-wrapper">
+        <!-- START HEADER-->
+        <header class="header">
+            <div class="page-brand">
+                <a class="link" href="https://frinext.com/auth/dashboard">
+                    <span class="brand">
+                     
+                        <img src="./Frinext - NextGen Payment Gateway _ Dashboard_files/frinext_log.png" "="" style="height: 40px; margin: 10px;">
+                      
+                    </span>
+                    
+                    <span class="brand-mini"> 
+                    
+                    <img src="./Frinext - NextGen Payment Gateway _ Dashboard_files/favicon.png" "="" style="height: 40px; margin: 10px;"> 
+                    </span>
+                </a>
+            </div>
+            <div class="flexbox flex-1">
+                <!-- START TOP-LEFT TOOLBAR-->
+                <ul class="nav navbar-toolbar">
+                    <li>
+                        <a class="nav-link sidebar-toggler js-sidebar-toggler"><i class="ti-menu"></i></a>
+                    </li>
+                    <li>
+                        <form class="navbar-search" action="javascript:;">
+                            <div class="rel">
+                                <span class="search-icon"><i class="ti-search"></i></span>
+                                <input class="form-control" placeholder="Search here...">
+                            </div>
+                        </form>
+                    </li>
+                </ul>
+                <!-- END TOP-LEFT TOOLBAR-->
+                <!-- START TOP-RIGHT TOOLBAR-->
+                <ul class="nav navbar-toolbar">
+                    <li class="dropdown dropdown-inbox">
+                        <a class="nav-link dropdown-toggle" data-toggle="dropdown"><i class="fa fa-envelope-o"></i>
+                            <span class="badge badge-primary envelope-badge">9</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-right dropdown-menu-media">
+                            <li class="dropdown-menu-header">
+                                <div>
+                                    <span><strong>9 New</strong> Messages</span>
+                                    <a class="pull-right" href="https://frinext.com/auth/mailbox.html">view all</a>
+                                </div>
+                            </li>
+                            <li class="list-group list-group-divider scroller" data-height="240px" data-color="#71808f">
+                                <div>
+                                    <a class="list-group-item">
+                                        <div class="media">
+                                            <div class="media-img">
+                                                <img src="./Frinext - NextGen Payment Gateway _ Dashboard_files/u1.jpg">
+                                            </div>
+                                            <div class="media-body">
+                                                <div class="font-strong"> </div>Jeanne Gonzalez<small class="text-muted float-right">Just now</small>
+                                                <div class="font-13">Your proposal interested me.</div>
+                                            </div>
+                                        </div>
+                                    </a>
+                                    <a class="list-group-item">
+                                        <div class="media">
+                                            <div class="media-img">
+                                                <img src="./Frinext - NextGen Payment Gateway _ Dashboard_files/u2.jpg">
+                                            </div>
+                                            <div class="media-body">
+                                                <div class="font-strong"></div>Becky Brooks<small class="text-muted float-right">18 mins</small>
+                                                <div class="font-13">Lorem Ipsum is simply.</div>
+                                            </div>
+                                        </div>
+                                    </a>
+                                    <a class="list-group-item">
+                                        <div class="media">
+                                            <div class="media-img">
+                                                <img src="./Frinext - NextGen Payment Gateway _ Dashboard_files/u3.jpg">
+                                            </div>
+                                            <div class="media-body">
+                                                <div class="font-strong"></div>Frank Cruz<small class="text-muted float-right">18 mins</small>
+                                                <div class="font-13">Lorem Ipsum is simply.</div>
+                                            </div>
+                                        </div>
+                                    </a>
+                                    <a class="list-group-item">
+                                        <div class="media">
+                                            <div class="media-img">
+                                                <img src="./Frinext - NextGen Payment Gateway _ Dashboard_files/u4.jpg">
+                                            </div>
+                                            <div class="media-body">
+                                                <div class="font-strong"></div>Rose Pearson<small class="text-muted float-right">3 hrs</small>
+                                                <div class="font-13">Lorem Ipsum is simply.</div>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="dropdown dropdown-notification">
+                        <a class="nav-link dropdown-toggle" data-toggle="dropdown"><i class="fa fa-bell-o rel"><span class="notify-signal"></span></i></a>
+                        <ul class="dropdown-menu dropdown-menu-right dropdown-menu-media">
+                            <li class="dropdown-menu-header">
+                                <div>
+                                    <span><strong>5 New</strong> Notifications</span>
+                                    <a class="pull-right" href="javascript:;">view all</a>
+                                </div>
+                            </li>
+                            <li class="list-group list-group-divider scroller" data-height="240px" data-color="#71808f">
+                                <div>
+                                    <a class="list-group-item">
+                                        <div class="media">
+                                            <div class="media-img">
+                                                <span class="badge badge-success badge-big"><i class="fa fa-check"></i></span>
+                                            </div>
+                                            <div class="media-body">
+                                                <div class="font-13">4 task compiled</div><small class="text-muted">22 mins</small>
+                                            </div>
+                                        </div>
+                                    </a>
+                                    <a class="list-group-item">
+                                        <div class="media">
+                                            <div class="media-img">
+                                                <span class="badge badge-default badge-big"><i class="fa fa-shopping-basket"></i></span>
+                                            </div>
+                                            <div class="media-body">
+                                                <div class="font-13">You have 12 new orders</div><small class="text-muted">40 mins</small>
+                                            </div>
+                                        </div>
+                                    </a>
+                                    <a class="list-group-item">
+                                        <div class="media">
+                                            <div class="media-img">
+                                                <span class="badge badge-danger badge-big"><i class="fa fa-bolt"></i></span>
+                                            </div>
+                                            <div class="media-body">
+                                                <div class="font-13">Server #7 rebooted</div><small class="text-muted">2 hrs</small>
+                                            </div>
+                                        </div>
+                                    </a>
+                                    <a class="list-group-item">
+                                        <div class="media">
+                                            <div class="media-img">
+                                                <span class="badge badge-success badge-big"><i class="fa fa-user"></i></span>
+                                            </div>
+                                            <div class="media-body">
+                                                <div class="font-13">New user registered</div><small class="text-muted">2 hrs</small>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="dropdown dropdown-user">
+                        <a class="nav-link dropdown-toggle link" data-toggle="dropdown">
+                            <img src="./Frinext - NextGen Payment Gateway _ Dashboard_files/admin-avatar.png">
+                            <span></span>User<i class="fa fa-angle-down m-l-5"></i></a>
+                        <ul class="dropdown-menu dropdown-menu-right">
+                            <a class="dropdown-item" href="https://frinext.com/auth/profile"><i class="fa fa-user"></i>Profile</a>
+                            
+                            <a class="dropdown-item" href="https://frinext.com/auth/Support.php" target="_blank">
+    <i class="fa fa-support"></i> Support
+</a>
+                            
+                            <a class="dropdown-item" href="https://frinext.com/auth/feedback.php" target="_blank">
+    <i class="fa fa-cog"></i> Send Feedback
+</a>
+
+                           
+
+                            <li class="dropdown-divider"></li>
+                            <a class="dropdown-item" href="https://frinext.com/auth/logout"><i class="fa fa-power-off"></i>Logout</a>
+                        </ul>
+                    </li>
+                </ul>
+                <!-- END TOP-RIGHT TOOLBAR-->
+            </div>
+        </header>
+        <!-- END HEADER-->
+        <!-- START SIDEBAR-->
+        <nav class="page-sidebar" id="sidebar">
+            <div id="sidebar-collapse">
+                <div class="admin-block d-flex">
+                    <div>
+                        <img src="./Frinext - NextGen Payment Gateway _ Dashboard_files/admin-avatar.png" width="45px">
+                    </div>
+                    <div class="admin-info">
+                        <div class="font-strong">Prathamesh tiwari</div><small>API Partner</small>
+                    </div>
+                </div>
+                <ul class="side-menu metismenu">
+                    <li>
+                        <a class="active" href="https://frinext.com/auth/dashboard"><i class="sidebar-item-icon fa fa-th-large"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-house" viewBox="0 0 16 16">
+                                    <path d="M8.707 1.5a1 1 0 0 0-1.414 0L.646 8.146a.5.5 0 0 0 .708.708L2 8.207V13.5A1.5 1.5 0 0 0 3.5 15h9a1.5 1.5 0 0 0 1.5-1.5V8.207l.646.647a.5.5 0 0 0 .708-.708L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293zM13 7.207V13.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V7.207l5-5z"></path>
+                                </svg></i>
+                            <span class="nav-label">Dashboard</span>
+                        </a>
+                    </li>
+                                        <li class="heading">Merchant Setting</li>
+                    <li>
+                        <a href="https://frinext.com/auth/connect_merchant"><i class="sidebar-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-arrow-up-right" viewBox="0 0 16 16">
+                                    <path fill-rule="evenodd" d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5"></path>
+                                    <path fill-rule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0z"></path>
+                                </svg></i>
+                            <span class="nav-label">Connect Merchant</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://frinext.com/auth/payment_link"><i class="sidebar-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-share" viewBox="0 0 16 16">
+                                    <path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.5 2.5 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5m-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3"></path>
+                                </svg></i>
+                            <span class="nav-label">Payment Link</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://frinext.com/auth/payment_form.php">
+    <i class="sidebar-item-icon">
+        <!-- Journal-text icon (perfect for forms/documents) -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-journal-text" viewBox="0 0 16 16">
+            <path d="M5 8a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5A.5.5 0 0 1 5 
+                     8m0 2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 
+                     1h-5A.5.5 0 0 1 5 10"></path>
+            <path d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 
+                     2H3a2 2 0 0 1-2-2V2a2 2 0 0 1 
+                     2-2m0 1a1 1 0 0 0-1 1v12a1 1 
+                     0 0 0 1 1h10a1 1 0 0 0 
+                     1-1V2a1 1 0 0 0-1-1z"></path>
+        </svg>
+    </i>
+    <span class="nav-label">Payment Page</span>
+</a>
+
+
+                    </li>
+                    <li>
+                        <a href="https://frinext.com/auth/transactions"><i class="sidebar-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-list-check" viewBox="0 0 16 16">
+                                    <path fill-rule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5M3.854 2.146a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 1 1 .708-.708L2 3.293l1.146-1.147a.5.5 0 0 1 .708 0m0 4a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 1 1 .708-.708L2 7.293l1.146-1.147a.5.5 0 0 1 .708 0m0 4a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 0 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0"></path>
+                                </svg></i>
+                            <span class="nav-label">Transactions</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://frinext.com/auth/subscription"><i class="sidebar-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-bag-check" viewBox="0 0 16 16">
+                                    <path fill-rule="evenodd" d="M10.854 8.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 0 1 .708-.708L7.5 10.793l2.646-2.647a.5.5 0 0 1 .708 0"></path>
+                                    <path d="M8 1a2.5 2.5 0 0 1 2.5 2.5V4h-5v-.5A2.5 2.5 0 0 1 8 1m3.5 3v-.5a3.5 3.5 0 1 0-7 0V4H1v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4zM2 5h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"></path>
+                                </svg></i>
+                            <span class="nav-label">Subscription</span>
+                        </a>
+                    </li>
+                    <!--                    <li>-->
+                    <!--                        <a href="brand_settings"><i class="sidebar-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">-->
+                    <!--  <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>-->
+                    <!--  <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>-->
+                    <!--</svg></i>-->
+                    <!--                            <span class="nav-label">Customize checkout</span>-->
+                    <!--                        </a>-->
+                    <!--                    </li>-->
+
+                    
+                    <li class="heading">Account Setting</li>
+                    <li>
+                    </li><li>
+                        <a href="https://frinext.com/auth/profile"><i class="sidebar-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person-circle" viewBox="0 0 16 16">
+                                    <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0"></path>
+                                    <path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1"></path>
+                                </svg></i>
+                            <span class="nav-label">Manage Profile</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://frinext.com/auth/change_password"><i class="sidebar-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-lock" viewBox="0 0 16 16">
+                                    <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2m3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2M5 8h6a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1"></path>
+                                </svg></i>
+                            <span class="nav-label">Change Password</span>
+                        </a>
+                    </li>
+                    
+                    <!-- <li class="heading">Developer Setting</li> -->
+                    <li>
+                    </li><li>
+                        <a href="https://frinext.com/auth/apidetails"><i class="sidebar-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-code-slash" viewBox="0 0 16 16">
+                                    <path d="M10.478 1.647a.5.5 0 1 0-.956-.294l-4 13a.5.5 0 0 0 .956.294zM4.854 4.146a.5.5 0 0 1 0 .708L1.707 8l3.147 3.146a.5.5 0 0 1-.708.708l-3.5-3.5a.5.5 0 0 1 0-.708l3.5-3.5a.5.5 0 0 1 .708 0m6.292 0a.5.5 0 0 0 0 .708L14.293 8l-3.147 3.146a.5.5 0 0 0 .708.708l3.5-3.5a.5.5 0 0 0 0-.708l-3.5-3.5a.5.5 0 0 0-.708 0"></path>
+                                </svg></i>
+                            <span class="nav-label">API Details</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://frinext.com/auth/simple_code"><i class="sidebar-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download" viewBox="0 0 16 16">
+                                    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"></path>
+                                    <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"></path>
+                                </svg></i>
+                            <span class="nav-label">Plugin Download</span>
+                        </a>
+                    </li>
+
+                </ul>
+            </div>
+        </nav>
+        <!-- END SIDEBAR-->
+        <div class="content-wrapper">
+
+            
+            <!-- BEGIN THEME CONFIG PANEL-->
+            <div class="theme-config">
+                <div class="theme-config-toggle"><i class="fa fa-cog theme-config-show"></i><i class="ti-close theme-config-close"></i></div>
+                <div class="theme-config-box">
+                    <div class="text-center font-18 m-b-20">SETTINGS</div>
+                    <div class="font-strong">LAYOUT OPTIONS</div>
+                    <div class="check-list m-b-20 m-t-10">
+                        <label class="ui-checkbox ui-checkbox-gray">
+                            <input id="_fixedNavbar" type="checkbox">
+                            <span class="input-span"></span>Fixed navbar</label>
+                        <label class="ui-checkbox ui-checkbox-gray">
+                            <input id="_fixedlayout" type="checkbox">
+                            <span class="input-span"></span>Fixed layout</label>
+                        <label class="ui-checkbox ui-checkbox-gray">
+                            <input class="js-sidebar-toggler" id="_fixedSidebar" type="checkbox">
+                            <span class="input-span"></span>Collapse sidebar</label>
+                    </div>
+                    <div class="font-strong">LAYOUT STYLE</div>
+                    <div class="m-t-10">
+                        <label class="ui-radio ui-radio-gray m-r-10">
+                            <input type="radio" name="layout-style" value="" checked="">
+                            <span class="input-span"></span>Fluid</label>
+                        <label class="ui-radio ui-radio-gray">
+                            <input type="radio" name="layout-style" value="1">
+                            <span class="input-span"></span>Boxed</label>
+                    </div>
+                    <div class="m-t-10 m-b-10 font-strong">THEME COLORS</div>
+                    <div class="d-flex m-b-20">
+                        <div class="color-skin-box" data-toggle="tooltip" data-original-title="Default">
+                            <label>
+                                <input type="radio" name="setting-theme" value="default">
+                                <span class="color-check-icon"><i class="fa fa-check"></i></span>
+                                <div class="color bg-white"></div>
+                                <div class="color-small bg-ebony"></div>
+                            </label>
+                        </div>
+                        <div class="color-skin-box" data-toggle="tooltip" data-original-title="Blue">
+                            <label>
+                                <input type="radio" name="setting-theme" value="blue">
+                                <span class="color-check-icon"><i class="fa fa-check"></i></span>
+                                <div class="color bg-blue"></div>
+                                <div class="color-small bg-ebony"></div>
+                            </label>
+                        </div>
+                        <div class="color-skin-box" data-toggle="tooltip" data-original-title="Green">
+                            <label>
+                                <input type="radio" name="setting-theme" value="green">
+                                <span class="color-check-icon"><i class="fa fa-check"></i></span>
+                                <div class="color bg-green"></div>
+                                <div class="color-small bg-ebony"></div>
+                            </label>
+                        </div>
+                        <div class="color-skin-box" data-toggle="tooltip" data-original-title="Purple">
+                            <label>
+                                <input type="radio" name="setting-theme" value="purple">
+                                <span class="color-check-icon"><i class="fa fa-check"></i></span>
+                                <div class="color bg-purple"></div>
+                                <div class="color-small bg-ebony"></div>
+                            </label>
+                        </div>
+                        <div class="color-skin-box" data-toggle="tooltip" data-original-title="Orange">
+                            <label>
+                                <input type="radio" name="setting-theme" value="orange">
+                                <span class="color-check-icon"><i class="fa fa-check"></i></span>
+                                <div class="color bg-orange"></div>
+                                <div class="color-small bg-ebony"></div>
+                            </label>
+                        </div>
+                        <div class="color-skin-box" data-toggle="tooltip" data-original-title="Pink">
+                            <label>
+                                <input type="radio" name="setting-theme" value="pink">
+                                <span class="color-check-icon"><i class="fa fa-check"></i></span>
+                                <div class="color bg-pink"></div>
+                                <div class="color-small bg-ebony"></div>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="d-flex">
+                        <div class="color-skin-box" data-toggle="tooltip" data-original-title="White">
+                            <label>
+                                <input type="radio" name="setting-theme" value="white">
+                                <span class="color-check-icon"><i class="fa fa-check"></i></span>
+                                <div class="color"></div>
+                                <div class="color-small bg-silver-100"></div>
+                            </label>
+                        </div>
+                        <div class="color-skin-box" data-toggle="tooltip" data-original-title="Blue light">
+                            <label>
+                                <input type="radio" name="setting-theme" value="blue-light">
+                                <span class="color-check-icon"><i class="fa fa-check"></i></span>
+                                <div class="color bg-blue"></div>
+                                <div class="color-small bg-silver-100"></div>
+                            </label>
+                        </div>
+                        <div class="color-skin-box" data-toggle="tooltip" data-original-title="Green light">
+                            <label>
+                                <input type="radio" name="setting-theme" value="green-light">
+                                <span class="color-check-icon"><i class="fa fa-check"></i></span>
+                                <div class="color bg-green"></div>
+                                <div class="color-small bg-silver-100"></div>
+                            </label>
+                        </div>
+                        <div class="color-skin-box" data-toggle="tooltip" data-original-title="Purple light">
+                            <label>
+                                <input type="radio" name="setting-theme" value="purple-light">
+                                <span class="color-check-icon"><i class="fa fa-check"></i></span>
+                                <div class="color bg-purple"></div>
+                                <div class="color-small bg-silver-100"></div>
+                            </label>
+                        </div>
+                        <div class="color-skin-box" data-toggle="tooltip" data-original-title="Orange light">
+                            <label>
+                                <input type="radio" name="setting-theme" value="orange-light">
+                                <span class="color-check-icon"><i class="fa fa-check"></i></span>
+                                <div class="color bg-orange"></div>
+                                <div class="color-small bg-silver-100"></div>
+                            </label>
+                        </div>
+                        <div class="color-skin-box" data-toggle="tooltip" data-original-title="Pink light">
+                            <label>
+                                <input type="radio" name="setting-theme" value="pink-light">
+                                <span class="color-check-icon"><i class="fa fa-check"></i></span>
+                                <div class="color bg-pink"></div>
+                                <div class="color-small bg-silver-100"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- END THEME CONFIG PANEL-->
+
+            <script disable-devtool-auto="" src="./Frinext - NextGen Payment Gateway _ Dashboard_files/disable-devtool.js.download" data-url="https://www.google.com/"></script>
+
+            <script>
+                // Show content when the page is fully loaded
+                window.onload = function() {
+                    document.getElementById("loading_ajax").style.display = "none";
+                };
+            </script>            <!-- START PAGE CONTENT-->
+            <div class="page-heading">
+                <h1 class="page-title">API Details</h1>
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="https://frinext.com/auth/index.html"><i class="la la-home font-20"></i></a>
+                    </li>
+                    <!-- <li class="breadcrumb-item">Icons</li> -->
+                </ol>
+            </div>
+            <div class="page-content fade-in-up">
+                <div class="ibox">
+                    <div class="ibox-body">
+                        <!-- <div class="row"> -->
+                            <!-- <div class="col-md-4"> -->
+                                <div class="card m-t-20 m-b-20">
+                                    <div class="card-body">
+                                    <div class="main-panel">
+
+                                    <div class="main-panel">
+				<div class="content">
+					<div class="container-fluid">
+
+						<!-- <h4 class="page-title">Api Documentation</h4>	 -->
+	
+
+									
+						<div class="row row-card-no-pd">							
+							<div class="col-md-12">
+								<form class="row mb-4" method="POST" action="https://frinext.com/auth/apidetails.php">
+								<input type="hidden" name="csrf_token" value="">
+								<div class="col-md-8 mb-2">
+									<label>Api Token</label>
+									<input type="text" placeholder="Click Generate Button for API Token" value="9f8bece0a67e98e7ccf71778e60cf43f" class="form-control" readonly="">
+								</div>
+								<div class="col-md-4 mb-2">
+									<label>&nbsp;</label>
+									<button type="submit" name="get_api_token" class="btn btn-primary btn-block">Generate Api Token</button>
+								</div>
+							  </form>
+							</div>		
+							
+					     
+							
+							<div class="col-md-12">
+							<form class="row mb-4" method="POST" action="https://frinext.com/auth/apidetails.php">
+							<input type="hidden" name="csrf_token" value="">
+						   <div class="col-md-8 mb-2">
+									<label>Webhook URL</label>
+									<input type="url" name="webhook_url" placeholder="Enter Your Webhook URL" value="" class="form-control" required="" pattern="https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}/?[a-zA-Z0-9.-]*\??[a-zA-Z0-9.-]*" title="Enter a valid URL">
+									<b style="color:red">Note: URL must include protocol (http / https)</b>
+								</div>
+								<div class="col-md-4 mb-2">
+									<label>&nbsp;</label>
+									<button type="submit" name="update_webhook" class="btn btn-primary btn-block">Update URL</button>
+								</div>
+							<hr>
+								
+							  </form>
+							</div>
+
+							<div class="col-md-12 mb-4"><hr></div>
+
+							<div class="col-md-12">
+								<h6 class="mb-3"><b>Create Order API</b></h6>
+								<form class="row mb-4" method="POST" action="https://frinext.com/auth/apidetails">
+								<div class="col-md-12 mb-2">
+									<label>URL</label>
+									<input type="text" placeholder="URL" value="https://frinext.com/api/create-order" class="form-control" readonly="">
+									<b style="color:red">Order Timeout 30 Minutes. Order Will Be Automatically Failed After 30 Minutes.</b>
+								</div>
+								<div class="col-md-12 mb-2">
+									<label>Form-Encoded Payload (application/x-www-form-urlencoded)</label>
+									<textarea type="text" placeholder="Form-Encoded Payload (Parameter)" class="form-control" style="height: 190px;" readonly="">{
+  "customer_mobile": "8145344963",
+  "user_token": "9f8bece0a67e98e7ccf71778e60cf43f",
+  "amount": "1",
+  "order_id": "8787772321800",
+  "redirect_url": "your website url",
+  "remark1" : "testremark",
+  "remark2 : "testremark2,
+}</textarea>
+
+								</div>
+								<div class="col-md-6 mb-2">
+									<label>Success Response</label>
+									<textarea type="text" placeholder="Success Response" class="form-control" style="height: 230px;" readonly="">    {
+    "status": true,
+    "message": "Order Created Successfully",
+    "result": {
+        "orderId": "1234561705047510",
+        "payment_url": "https://yourwebsite.com/payment/pay.php?data=MTIzNDU2MTcwNTA0NzUxMkyNTIy"
+    }
+}
+</textarea>
+
+								</div>
+								<div class="col-md-6 mb-2">
+									<label>Failed Response</label>
+									<textarea type="text" placeholder="Failed Response" class="form-control" style="height: 140px;" readonly="">{
+    "status": "false",
+    "message": "Order_id Already Exist"
+}</textarea> 
+								</div>
+							  </form>
+							</div>
+
+							<div class="col-md-12 mb-4"><hr></div>
+
+							<div class="col-md-12">
+								<h6 class="mb-3"><b>Check Order Status API</b></h6>
+								<form class="row mb-4" method="POST" action="https://frinext.com/auth/apidetails">
+								<div class="col-md-12 mb-2">
+									<label>URL</label>
+									<input type="text" placeholder="URL" value="https://frinext.com/api/check-order-status" class="form-control" readonly="">
+								</div>
+								<div class="col-md-12 mb-2">
+									<label>Form-Encoded Payload (application/x-www-form-urlencoded)</label>
+									<textarea type="text" placeholder="Post Data into Form Header into Form Header (Parameter)" class="form-control" style="height: 120px;" readonly="">{
+    "user_token": "2048f66bef68633fa3262d7a398ab577",
+    "order_id": "8052313697"
+}</textarea> 
+								</div>
+								<div class="col-md-6 mb-2">
+									<label>Success Response</label>
+									
+								<textarea type="text" placeholder="Success Response" class="form-control" style="height: 190px;" readonly="">{
+    "status": "COMPLETED",
+    "message": "Transaction Successfully",
+    "result": {
+        "txnStatus": "COMPLETED",
+        "resultInfo": "Transaction Success",
+        "orderId": "784525sdD",
+        "status": "SUCCESS",
+        "amount": "1",
+        "date": "2024-01-12 13:22:08",
+        "utr": "454525454245"
+    }
+}
+</textarea>
+
+								</div>
+								<div class="col-md-6 mb-2">
+									<label>Failed Response</label>
+									<textarea type="text" placeholder="Failed Response" class="form-control" style="height: 140px;" readonly="">{
+    "status": ERROR,
+    "message": "Error Massege",
+    
+}</textarea> 
+								</div>
+							  </form>
+							</div>      
+							<script src="./Frinext - NextGen Payment Gateway _ Dashboard_files/jquery.min.js.download" type="text/javascript"></script>
+							<script src="./Frinext - NextGen Payment Gateway _ Dashboard_files/dashboard_1_demo.js.download" type="text/javascript"></script>
+							 <script src="./Frinext - NextGen Payment Gateway _ Dashboard_files/app.min.js.download" type="text/javascript"></script>
+							</div></div></div></div></div></div></div></div></div></div></div></div></body></html>

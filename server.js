@@ -5,10 +5,11 @@ import xlsx from 'xlsx';
 import { z } from 'zod';
 import cors from 'cors';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, serverTimestamp, getDocs, query, where } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, serverTimestamp, getDocs, query, where, doc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import crypto from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -266,6 +267,426 @@ server.post('/api/import-dataset', upload.single('file'), async (req, res) => {
       success: false,
       error: 'Internal server error during import'
     });
+  }
+});
+
+
+// Frinext check status endpoint
+server.post('/api/frinext/check-status', async (req, res) => {
+  try {
+    const { orderId } = req.body;
+
+    if (!orderId) {
+      return res.status(400).json({ error: 'Order ID is required' });
+    }
+
+    console.log('Checking Frinext payment status for order:', orderId);
+
+    // Import frinext service (we'll need to make it work server-side)
+    const frinextApiToken = '9f8bece0a67e98e7ccf71778e60cf43f';
+    const frinextBaseUrl = 'https://frinext.com/api';
+
+    const payload = new URLSearchParams({
+      user_token: frinextApiToken,
+      order_id: orderId
+    });
+
+    const response = await fetch(`${frinextBaseUrl}/check-order-status`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+      },
+      body: payload.toString()
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Frinext API Error: ${response.status} - ${errorText}`);
+    }
+
+    const result = await response.json();
+    console.log('Frinext status response:', result);
+
+    // If payment is completed, process it
+    // Check both overall status and transaction status
+    if ((result.status === 'COMPLETED' || result.status === 'SUCCESS') &&
+        (result.result?.txnStatus === 'SUCCESS' || result.result?.status === 'SUCCESS' ||
+         result.result?.txnStatus === 'COMPLETED' || result.result?.status === 'COMPLETED')) {
+      // Extract bill ID from order ID (format: BILL_{billId}_{timestamp}_{random})
+      const orderParts = orderId.split('_');
+      if (orderParts.length >= 2 && orderParts[0] === 'BILL') {
+        const billId = orderParts[1];
+
+        // Get bill details
+        const billRef = doc(db, 'bills', billId);
+        const billSnap = await getDoc(billRef);
+
+        if (billSnap.exists()) {
+          const billData = billSnap.data();
+
+          // Check if bill is already paid
+          if (billData.status !== 'paid') {
+            const today = new Date().toISOString().split('T')[0];
+            const receiptNumber = `RC${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
+
+            // Update bill status
+            await updateDoc(billRef, {
+              status: 'paid',
+              paidDate: today,
+              paymentMethod: 'UPI',
+              receiptNumber,
+              transactionId: result.result?.utr || result.result?.transactionId || orderId,
+              frinextDetails: {
+                orderId,
+                status: result.status,
+                amount: parseFloat(result.result?.amount || '0'),
+                transactionId: result.result?.utr || result.result?.transactionId || null,
+                date: result.result?.date,
+                processedAt: new Date().toISOString()
+              }
+            });
+
+            // Find member and add transaction to their payments array
+            const usersRef = collection(db, 'users');
+            const userQuery = query(usersRef, where('email', '==', billData.memberEmail));
+            const userSnapshot = await getDocs(userQuery);
+
+            if (!userSnapshot.empty) {
+              const userDoc = userSnapshot.docs[0];
+              const transaction = {
+                id: `TXN_FRINEXT_${Date.now()}`,
+                billId: billId,
+                amount: parseFloat(result.result?.amount || '0'),
+                method: 'UPI',
+                mode: 'UPI Payment via Frinext',
+                bank: 'UPI',
+                date: today,
+                receiptNumber,
+                status: 'success',
+                frinextDetails: {
+                  orderId,
+                  transactionId: result.result?.utr,
+                  date: result.result?.date
+                }
+              };
+
+              await updateDoc(userDoc.ref, {
+                payments: arrayUnion(transaction)
+              });
+            }
+
+            console.log('Frinext payment processed successfully via polling:', {
+              billId,
+              orderId,
+              transactionId: result.result?.utr,
+              amount: result.result?.amount
+            });
+          }
+        }
+      }
+    }
+
+    res.json(result);
+
+  } catch (error) {
+    console.error('Frinext check status error:', error);
+    res.status(500).json({ error: 'Failed to check payment status' });
+  }
+});
+
+// Frinext create order endpoint (server-side API call to avoid CORS)
+server.post('/api/frinext/create-order', async (req, res) => {
+  console.log('Frinext create order called:', req.body);
+  try {
+    const { amount, orderId, customerMobile, redirectUrl, remark1, remark2 } = req.body;
+
+    if (!amount || !orderId || !customerMobile || !redirectUrl) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Import frinext service (we'll need to make it work server-side)
+    const frinextApiToken = '9f8bece0a67e98e7ccf71778e60cf43f';
+    const frinextBaseUrl = 'https://frinext.com/api';
+
+    const payload = new URLSearchParams({
+      customer_mobile: customerMobile,
+      user_token: frinextApiToken,
+      amount: amount.toString(),
+      order_id: orderId,
+      redirect_url: redirectUrl,
+      ...(remark1 && { remark1 }),
+      ...(remark2 && { remark2 })
+    });
+
+    const response = await fetch(`${frinextBaseUrl}/create-order`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+      },
+      body: payload.toString()
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Frinext API Error: ${response.status} - ${errorText}`);
+    }
+
+    const result = await response.json();
+    res.json(result);
+
+  } catch (error) {
+    console.error('Frinext create order error:', error);
+    res.status(500).json({ error: 'Failed to create order' });
+  }
+});
+
+
+// Frinext webhook endpoint for payment confirmations
+server.post('/api/webhook/frinext', async (req, res) => {
+  try {
+    console.log('=== FRINEXT WEBHOOK RECEIVED ===');
+    console.log('Headers:', JSON.stringify(req.headers, null, 2));
+    console.log('Body:', JSON.stringify(req.body, null, 2));
+    console.log('Raw body:', req.rawBody || 'Not available');
+
+    // Frinext webhook payload structure (based on documentation)
+    const {
+      orderId,
+      status,
+      amount,
+      transactionId,
+      paymentMethod,
+      customerDetails
+    } = req.body;
+
+    if (!orderId || !status) {
+      console.error('Missing required fields in Frinext webhook');
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Extract bill ID from order ID (format: BILL_{billId}_{timestamp}_{random})
+    const orderParts = orderId.split('_');
+    if (orderParts.length < 3 || orderParts[0] !== 'BILL') {
+      console.error('Invalid order ID format:', orderId);
+      return res.status(400).json({ error: 'Invalid order ID format' });
+    }
+
+    const billId = orderParts[1];
+
+    // Get bill details
+    const billRef = doc(db, 'bills', billId);
+    const billSnap = await getDoc(billRef);
+
+    if (!billSnap.exists()) {
+      console.error('Bill not found:', billId);
+      return res.status(404).json({ error: 'Bill not found' });
+    }
+
+    const billData = billSnap.data();
+
+    // Check if bill is already paid
+    if (billData.status === 'paid') {
+      console.log('Bill already paid:', billId);
+      return res.status(200).json({ message: 'Bill already processed' });
+    }
+
+    // Process successful payment
+    // Check both webhook status and ensure it's actually completed
+    if ((status === 'COMPLETED' || status === 'SUCCESS') &&
+        (!req.body.txnStatus || req.body.txnStatus === 'SUCCESS' || req.body.txnStatus === 'COMPLETED')) {
+      const today = new Date().toISOString().split('T')[0];
+      const receiptNumber = `RC${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
+
+      // Update bill status
+      await updateDoc(billRef, {
+        status: 'paid',
+        paidDate: today,
+        paymentMethod: 'UPI',
+        receiptNumber,
+        transactionId: transactionId || orderId,
+        frinextDetails: {
+          orderId,
+          status,
+          amount: parseFloat(amount),
+          transactionId: transactionId || null,
+          paymentMethod,
+          customerDetails,
+          processedAt: new Date().toISOString()
+        }
+      });
+
+      // Find member and add transaction to their payments array
+      const usersRef = collection(db, 'users');
+      const userQuery = query(usersRef, where('email', '==', billData.memberEmail));
+      const userSnapshot = await getDocs(userQuery);
+
+      if (!userSnapshot.empty) {
+        const userDoc = userSnapshot.docs[0];
+        const transaction = {
+          id: `TXN_FRINEXT_${Date.now()}`,
+          billId: billId,
+          amount: parseFloat(amount),
+          method: 'UPI',
+          mode: 'UPI Payment via Frinext',
+          bank: paymentMethod || 'UPI',
+          date: today,
+          receiptNumber,
+          status: 'success',
+          frinextDetails: {
+            orderId,
+            transactionId,
+            paymentMethod,
+            customerDetails
+          }
+        };
+
+        await updateDoc(userDoc.ref, {
+          payments: arrayUnion(transaction)
+        });
+      }
+
+      console.log('Frinext payment processed successfully:', {
+        billId,
+        orderId,
+        transactionId,
+        amount
+      });
+    } else {
+      console.log('Frinext payment not completed:', { orderId, status });
+    }
+
+    // Return 200 OK to acknowledge receipt
+    res.status(200).json({ message: 'Webhook processed successfully' });
+
+  } catch (error) {
+    console.error('Frinext webhook error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Test endpoint for Frinext integration
+server.post('/api/test/frinext-webhook', async (req, res) => {
+  try {
+    console.log('Frinext test webhook received:', req.body);
+
+    // Simulate webhook processing
+    const testResponse = {
+      message: 'Frinext webhook test successful',
+      received: req.body,
+      timestamp: new Date().toISOString()
+    };
+
+    res.status(200).json(testResponse);
+  } catch (error) {
+    console.error('Frinext test webhook error:', error);
+    res.status(500).json({ error: 'Test webhook failed' });
+  }
+});
+
+// Manual webhook test endpoint
+server.post('/api/test/process-frinext-payment', async (req, res) => {
+  try {
+    const { orderId, status, amount, transactionId } = req.body;
+
+    console.log('Manual Frinext payment processing:', { orderId, status, amount, transactionId });
+
+    // Extract bill ID from order ID (format: BILL_{billId}_{timestamp}_{random})
+    const orderParts = orderId.split('_');
+    if (orderParts.length < 3 || orderParts[0] !== 'BILL') {
+      return res.status(400).json({ error: 'Invalid order ID format' });
+    }
+
+    const billId = orderParts[1];
+
+    // Get bill details
+    const billRef = doc(db, 'bills', billId);
+    const billSnap = await getDoc(billRef);
+
+    if (!billSnap.exists()) {
+      return res.status(404).json({ error: 'Bill not found' });
+    }
+
+    const billData = billSnap.data();
+
+    // Check if bill is already paid
+    if (billData.status === 'paid') {
+      return res.status(200).json({ message: 'Bill already processed' });
+    }
+
+    // Process successful payment
+    // Check both status and transaction status for completion
+    if ((status === 'COMPLETED' || status === 'SUCCESS') &&
+        (!req.body.txnStatus || req.body.txnStatus === 'SUCCESS' || req.body.txnStatus === 'COMPLETED')) {
+      const today = new Date().toISOString().split('T')[0];
+      const receiptNumber = `RC${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
+
+      // Update bill status
+      await updateDoc(billRef, {
+        status: 'paid',
+        paidDate: today,
+        paymentMethod: 'UPI',
+        receiptNumber,
+        transactionId: transactionId || orderId,
+        frinextDetails: {
+          orderId,
+          status,
+          amount: parseFloat(amount),
+          transactionId: transactionId || null,
+          processedAt: new Date().toISOString()
+        }
+      });
+
+      // Find member and add transaction to their payments array
+      const usersRef = collection(db, 'users');
+      const userQuery = query(usersRef, where('email', '==', billData.memberEmail));
+      const userSnapshot = await getDocs(userQuery);
+
+      if (!userSnapshot.empty) {
+        const userDoc = userSnapshot.docs[0];
+        const transaction = {
+          id: `TXN_FRINEXT_${Date.now()}`,
+          billId: billId,
+          amount: parseFloat(amount),
+          method: 'UPI',
+          mode: 'UPI Payment via Frinext',
+          bank: 'UPI',
+          date: today,
+          receiptNumber,
+          status: 'success',
+          frinextDetails: {
+            orderId,
+            transactionId,
+            paymentMethod: 'UPI'
+          }
+        };
+
+        await updateDoc(userDoc.ref, {
+          payments: arrayUnion(transaction)
+        });
+      }
+
+      console.log('Frinext payment processed successfully:', {
+        billId,
+        orderId,
+        transactionId,
+        amount
+      });
+
+      res.status(200).json({
+        message: 'Payment processed successfully',
+        billId,
+        orderId,
+        amount
+      });
+    } else {
+      res.status(200).json({ message: 'Payment not completed', status });
+    }
+
+  } catch (error) {
+    console.error('Manual payment processing error:', error);
+    res.status(500).json({ error: 'Failed to process payment' });
   }
 });
 

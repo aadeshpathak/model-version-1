@@ -34,6 +34,7 @@ import { Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import MobileCard from '@/components/ui/MobileCard';
 import { motion } from 'framer-motion';
+import * as XLSX from 'xlsx';
 
 const expenseCategories = [
   { value: 'electricity', label: 'Electricity', icon: Zap, color: 'bg-yellow-500' },
@@ -56,6 +57,7 @@ export const ExpenseManagement = () => {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [isEditExpenseDialogOpen, setIsEditExpenseDialogOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [selectedImportStatus, setSelectedImportStatus] = useState<'paid' | 'pending'>('paid');
   const [importStatus, setImportStatus] = useState<'idle' | 'uploading' | 'processing' | 'completed' | 'error'>('idle');
   const [importProgress, setImportProgress] = useState(0);
   const [expenseProgress, setExpenseProgress] = useState(0);
@@ -480,11 +482,22 @@ export const ExpenseManagement = () => {
         }
       } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
         // Use xlsx library for Excel files
-        const XLSX = await import('xlsx');
         const workbook = XLSX.read(fileContent, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
+        // Try to find expense sheet first, fallback to first sheet
+        let sheetName = workbook.SheetNames.find(name => name.toLowerCase().includes('exp'));
+        if (!sheetName) {
+          sheetName = workbook.SheetNames[0]; // fallback to first sheet
+        }
+
         const worksheet = workbook.Sheets[sheetName];
-        rawData = XLSX.utils.sheet_to_json(worksheet);
+
+        // Try different parsing options
+        rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+        // If that doesn't work, try without header option
+        if (!rawData || rawData.length === 0) {
+          rawData = XLSX.utils.sheet_to_json(worksheet);
+        }
       } else if (file.name.endsWith('.json')) {
         const jsonText = new TextDecoder().decode(fileContent);
         rawData = JSON.parse(jsonText);
@@ -509,33 +522,104 @@ export const ExpenseManagement = () => {
         throw new Error('No approved members found to create bills for');
       }
 
+      // Check if this is a wide-format file (months as columns)
+      const headers = Object.keys(rawData[0] || {});
+      console.log('Headers detected:', headers);
+
+      const dateColumns = headers.filter(header => {
+        // Look for date patterns like YYYY-MM-DD or Month YYYY
+        return /^\d{4}-\d{2}-\d{2}$/.test(header) ||
+               /^\d{4}-\d{1,2}-\d{1,2}$/.test(header) ||
+               header.includes('2023') || header.includes('2024') || header.includes('2025');
+      });
+
+      console.log('Date columns found:', dateColumns);
+      const isWideFormat = dateColumns.length > 2; // If we have multiple date columns, it's wide format
+      console.log('Is wide format:', isWideFormat);
+
       // Validate and transform data
       const validRecords = [];
       const errors = [];
 
-      rawData.forEach((record, index) => {
-        try {
-          const transformedRecord = {
-            expense_category: record.expense_category || record.category || record.Expense_Category || record.Category || 'other',
-            amount: parseFloat(record.amount || record.Amount || record.expense_amount || record.Expense_Amount || 0),
-            month: record.month || record.Month || record.expense_month || record.Expense_Month || 'January',
-            year: parseInt(record.year || record.Year || record.expense_year || record.Expense_Year || new Date().getFullYear()),
-            description: record.description || record.Description || `Imported from ${file.name}`
-          };
+      if (isWideFormat) {
+        // Handle wide-format: months as columns
+        rawData.forEach((record, index) => {
+          try {
+            const vendorName = record[headers[0]] || record['Vendor Name'] || record.vendor || 'Unknown Vendor';
 
-          // Basic validation
-          if (transformedRecord.amount <= 0) {
-            throw new Error('Invalid amount');
+            // Process each date column
+            dateColumns.forEach(dateCol => {
+              const amount = parseFloat(record[dateCol] || 0);
+
+              if (amount > 0) {
+                // Parse date from column header
+                let month, year;
+                if (/^\d{4}-\d{2}-\d{2}$/.test(dateCol)) {
+                  // Format: YYYY-MM-DD
+                  const dateParts = dateCol.split('-');
+                  year = parseInt(dateParts[0]);
+                  month = new Date(year, parseInt(dateParts[1]) - 1, 1).toLocaleString('default', { month: 'long' });
+                } else {
+                  // Try to extract month and year from header
+                  const monthMatch = dateCol.match(/(January|February|March|April|May|June|July|August|September|October|November|December)/i);
+                  const yearMatch = dateCol.match(/\d{4}/);
+
+                  if (monthMatch && yearMatch) {
+                    month = monthMatch[1];
+                    year = parseInt(yearMatch[0]);
+                  } else {
+                    // Fallback: use current month/year
+                    month = new Date().toLocaleString('default', { month: 'long' });
+                    year = new Date().getFullYear();
+                  }
+                }
+
+                const transformedRecord = {
+                  expense_category: getNormalizedCategory(vendorName),
+                  amount: amount,
+                  month: month,
+                  year: year,
+                  description: `Imported from ${file.name} - ${vendorName}`,
+                  vendor: vendorName
+                };
+
+                validRecords.push(transformedRecord);
+              }
+            });
+          } catch (error) {
+            errors.push({
+              row: index + 1,
+              error: error.message
+            });
           }
+        });
+      } else {
+        // Handle standard format: one expense per row
+        rawData.forEach((record, index) => {
+          try {
+            const transformedRecord = {
+              expense_category: record.expense_category || record.category || record.Expense_Category || record.Category || 'other',
+              amount: parseFloat(record.amount || record.Amount || record.expense_amount || record.Expense_Amount || 0),
+              month: record.month || record.Month || record.expense_month || record.Expense_Month || 'January',
+              year: parseInt(record.year || record.Year || record.expense_year || record.Expense_Year || new Date().getFullYear()),
+              description: record.description || record.Description || `Imported from ${file.name}`,
+              vendor: record.vendor || record.Vendor || record.vendor_name || record['Vendor Name'] || 'Imported Vendor'
+            };
 
-          validRecords.push(transformedRecord);
-        } catch (error) {
-          errors.push({
-            row: index + 1,
-            error: error.message
-          });
-        }
-      });
+            // Basic validation
+            if (transformedRecord.amount <= 0) {
+              throw new Error('Invalid amount');
+            }
+
+            validRecords.push(transformedRecord);
+          } catch (error) {
+            errors.push({
+              row: index + 1,
+              error: error.message
+            });
+          }
+        });
+      }
 
       if (validRecords.length === 0) {
         throw new Error('No valid records found in file');
@@ -549,7 +633,7 @@ export const ExpenseManagement = () => {
       let expensesInserted = 0;
       let skipped = 0;
 
-      // Smart category mapping
+      // Enhanced smart category mapping for vendor names
       const getNormalizedCategory = (rawCategory: string) => {
         if (!rawCategory) return 'other';
 
@@ -569,15 +653,31 @@ export const ExpenseManagement = () => {
 
         if (directMatches[category]) return directMatches[category];
 
-        // Fuzzy matches
+        // Enhanced fuzzy matches for common vendor types
         const fuzzyMatches = [
-          { patterns: ['electric', 'power', 'energy'], category: 'electricity' },
-          { patterns: ['security', 'guard', 'watchman'], category: 'security' },
-          { patterns: ['water', 'sewage', 'drainage'], category: 'water' },
-          { patterns: ['maintenance', 'repair', 'fix'], category: 'maintenance' },
-          { patterns: ['cleaning', 'cleaner', 'housekeeping'], category: 'cleaning' },
+          // Electricity
+          { patterns: ['electric', 'power', 'energy', 'light', 'bill', 'vmc'], category: 'electricity' },
+
+          // Security
+          { patterns: ['security', 'guard', 'watchman', 'security'], category: 'security' },
+
+          // Water
+          { patterns: ['water', 'sewage', 'drainage', 'tanker', 'suppliers', 'tank'], category: 'water' },
+
+          // Maintenance
+          { patterns: ['maintenance', 'repair', 'fix', 'electric reparing', 'pipe repair', 'motor repair'], category: 'maintenance' },
+
+          // Cleaning
+          { patterns: ['cleaning', 'cleaner', 'housekeeping', 'gutter', 'chamber', 'terrace'], category: 'cleaning' },
+
+          // Garbage
           { patterns: ['garbage', 'waste', 'collection'], category: 'garbage' },
-          { patterns: ['staff', 'salary', 'employee', 'worker'], category: 'staff' }
+
+          // Staff/Salary
+          { patterns: ['staff', 'salary', 'employee', 'worker', 'man', 'zaduwali', 'water man', 'bonus'], category: 'staff' },
+
+          // Other professional services
+          { patterns: ['c.a', 'chartered accountant', 'accountant', 'patoral'], category: 'other' }
         ];
 
         for (const match of fuzzyMatches) {
@@ -799,17 +899,17 @@ export const ExpenseManagement = () => {
               accept=".csv,.xls,.xlsx,.json"
               style={{ display: 'none' }}
               onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  // Reset file input
-                  if (fileInputRef.current) {
-                    fileInputRef.current.value = '';
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    // Reset file input
+                    if (fileInputRef.current) {
+                      fileInputRef.current.value = '';
+                    }
+                    // Store file temporarily and open import dialog
+                    (window as any).selectedImportFile = file;
+                    setIsImportDialogOpen(true);
                   }
-                  // Store file temporarily and open status selection dialog
-                  (window as any).selectedImportFile = file;
-                  setIsImportDialogOpen(true);
-                }
-              }}
+                }}
             />
               <DialogContent className="max-w-md mx-4">
                 <DialogHeader>
@@ -1163,6 +1263,7 @@ export const ExpenseManagement = () => {
           </DialogContent>
         </Dialog>
   
+
         {/* Import Dataset Dialog */}
         <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
           <DialogContent className="max-w-md">

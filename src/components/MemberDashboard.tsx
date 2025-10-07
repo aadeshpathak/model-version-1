@@ -155,13 +155,24 @@ export const MemberDashboard = () => {
       date: b.dueDate?.toDate ? b.dueDate.toDate().toISOString().split('T')[0] : 'N/A',
       receipt: `#RC${b.id.slice(-3)}`
     })),
-    currentBills: bills.slice(0, 2).map(b => ({
-      id: b.id,
-      month: b.dueDate?.toDate ? b.dueDate.toDate().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'N/A',
-      amount: (b.amount || 0) + (b.lateFee || 0),
-      dueDate: b.dueDate?.toDate ? b.dueDate.toDate().toISOString().split('T')[0] : 'N/A',
-      status: b.status
-    })),
+    currentBills: bills
+      .sort((a, b) => {
+        // Pending bills first
+        if (a.status === 'pending' && b.status !== 'pending') return -1;
+        if (a.status !== 'pending' && b.status === 'pending') return 1;
+        // Then by dueDate descending (most recent first)
+        const dateA = a.dueDate?.toDate?.() || new Date(0);
+        const dateB = b.dueDate?.toDate?.() || new Date(0);
+        return dateB.getTime() - dateA.getTime();
+      })
+      .slice(0, 2)
+      .map(b => ({
+        id: b.id,
+        month: b.dueDate?.toDate ? b.dueDate.toDate().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'N/A',
+        amount: (b.amount || 0) + (b.lateFee || 0),
+        dueDate: b.dueDate?.toDate ? b.dueDate.toDate().toISOString().split('T')[0] : 'N/A',
+        status: b.status
+      })),
     notices: notices.slice(0, 3).map(n => ({
       id: n.id,
       title: n.title,
@@ -943,11 +954,11 @@ export const MemberDashboard = () => {
 
       {/* Receipt Dialog */}
       <Dialog open={receiptDialog.open} onOpenChange={(open) => setReceiptDialog({ open, bill: null })}>
-        <DialogContent className="max-w-sm sm:max-w-md p-0">
+        <DialogContent className="max-w-sm mx-auto p-0 max-h-[70vh] overflow-hidden">
           <DialogHeader className="px-4 pt-4">
             <DialogTitle>Payment Receipt</DialogTitle>
           </DialogHeader>
-          <div className="px-4 pb-4">
+          <div className="px-4 pb-4 max-h-[calc(70vh-80px)] overflow-y-auto">
             {receiptDialog.bill && (
               <BillReceipt
                 bill={receiptDialog.bill}

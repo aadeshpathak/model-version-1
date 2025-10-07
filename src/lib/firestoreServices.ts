@@ -71,19 +71,19 @@ export interface Expense {
 
 // Get all members (for admin)
 export const getMembers = (callback: (members: User[]) => void) => {
-  const q = query(collection(db, 'users'));
-  return onSnapshot(q, (snapshot) => {
-    const members: User[] = snapshot.docs.map(docSnapshot => {
-      const data = docSnapshot.data();
-      return { id: docSnapshot.id, ...data as Omit<User, 'id'> };
-    });
+  return onSnapshot(collection(db, 'users'), (snapshot) => {
+    const members: User[] = snapshot.docs
+      .map(docSnapshot => ({
+        id: docSnapshot.id,
+        ...docSnapshot.data() as Omit<User, 'id'>
+      }));
     callback(members);
   });
 };
 
 // Add member
-export const addMember = async (data: Omit<User, 'id'>) => {
-  const ref = await addDoc(collection(db, 'users'), {
+export const addMember = async (data: Omit<User, 'id'>, environment: string = 'default') => {
+  const ref = await addDoc(collection(db, `environments/${environment}/users`), {
     ...data,
     approved: false, // default pending
     dismissed: false,
@@ -134,19 +134,21 @@ export const dismissMember = async (id: string) => {
 
 // Get member's bills (for member dashboard)
 export const getMemberBills = (memberId: string, callback: (bills: Bill[]) => void) => {
-  const q = query(collection(db, 'bills'), where('memberId', '==', memberId));
-  return onSnapshot(q, (snapshot) => {
-    const bills: Bill[] = snapshot.docs.map(docSnapshot => ({
-      id: docSnapshot.id,
-      ...docSnapshot.data() as Omit<Bill, 'id'>
-    }));
+  return onSnapshot(collection(db, 'bills'), (snapshot) => {
+    const bills: Bill[] = snapshot.docs
+      .map(docSnapshot => ({
+        id: docSnapshot.id,
+        ...docSnapshot.data() as Omit<Bill, 'id'>
+      }))
+      .filter(bill => bill.memberId === memberId);
     callback(bills);
   });
 };
 
 // Add expense
-export const addExpense = async (data: Omit<Expense, 'id' | 'createdAt'>) => {
-  await addDoc(collection(db, 'expenses'), { ...data, createdAt: serverTimestamp() });
+export const addExpense = async (data: Omit<Expense, 'id' | 'createdAt'>, environment: string = 'default') => {
+  const collectionPath = environment === 'default' ? 'expenses' : `environments/${environment}/expenses`;
+  await addDoc(collection(db, collectionPath), { ...data, createdAt: serverTimestamp() });
 };
 
 // Get expenses for member (all or targeted)
@@ -385,8 +387,9 @@ export const updateBill = async (billId: string, data: Partial<Bill>) => {
 };
 
 // Add single bill
-export const addBill = async (data: Omit<Bill, 'id'>) => {
-  await addDoc(collection(db, 'bills'), {
+export const addBill = async (data: Omit<Bill, 'id'>, environment: string = 'default') => {
+  const collectionPath = environment === 'default' ? 'bills' : `environments/${environment}/bills`;
+  await addDoc(collection(db, collectionPath), {
     ...data,
     createdAt: serverTimestamp()
   });
@@ -433,19 +436,24 @@ export const getSocietySettings = (callback: (settings: any) => void) => {
 export const markOverdueBills = async () => {
   const now = new Date();
   const billsRef = collection(db, 'bills');
-  const overdueBillsQuery = query(
-    billsRef,
-    where('status', '==', 'pending'),
-    where('dueDate', '<', Timestamp.fromDate(now))
-  );
 
-  const snapshot = await getDocs(overdueBillsQuery);
-  const updatePromises = snapshot.docs.map(doc =>
+  // Query only by status to avoid composite index requirement
+  const pendingBillsQuery = query(billsRef, where('status', '==', 'pending'));
+  const snapshot = await getDocs(pendingBillsQuery);
+
+  // Filter by due date in code
+  const overdueBills = snapshot.docs.filter(doc => {
+    const billData = doc.data();
+    const dueDate = billData.dueDate;
+    return dueDate && dueDate.toDate() < now;
+  });
+
+  const updatePromises = overdueBills.map(doc =>
     updateDoc(doc.ref, { status: 'overdue' })
   );
 
   await Promise.all(updatePromises);
-  return snapshot.docs.length; // Return number of bills marked as overdue
+  return overdueBills.length; // Return number of bills marked as overdue
 };
 
 // Add more functions as needed

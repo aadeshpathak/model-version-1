@@ -6,6 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { BillReceipt } from '@/components/BillReceipt';
+import { useSocietySettings } from '@/hooks/use-society-settings';
 import {
   FileText,
   Plus,
@@ -33,6 +35,7 @@ import MobileCard from '@/components/ui/MobileCard';
 import { motion } from 'framer-motion';
 
 export const BillManagement = () => {
+  const { settings: societySettings } = useSocietySettings();
   const [bills, setBills] = useState<Bill[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -42,6 +45,7 @@ export const BillManagement = () => {
   const [openMenuBillId, setOpenMenuBillId] = useState<string | null>(null);
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
   const [selectedBill, setSelectedBill] = useState<any>(null);
+  const [receiptDialog, setReceiptDialog] = useState<{ open: boolean; bill: any }>({ open: false, bill: null });
   const { toast } = useToast();
 
   const [generateForm, setGenerateForm] = useState({
@@ -571,15 +575,12 @@ export const BillManagement = () => {
                     variant="outline"
                     className="w-full justify-start"
                     onClick={() => {
-                      toast({
-                        title: "Download Started",
-                        description: `Downloading receipt ${selectedBill.receiptNumber}`,
-                      });
+                      setReceiptDialog({ open: true, bill: selectedBill });
                       setActionDialogOpen(false);
                     }}
                   >
                     <Receipt size={16} className="mr-2" />
-                    Download Receipt
+                    View Receipt
                   </Button>
                 )}
               </div>
@@ -874,8 +875,8 @@ export const BillManagement = () => {
                     )}
                     {bill.status === 'paid' && (
                       <div className="flex gap-1">
-                        <Button size="sm" variant="outline">
-                          <Download className="w-4 h-4" />
+                        <Button size="sm" variant="outline" onClick={() => setReceiptDialog({ open: true, bill })}>
+                          <Receipt className="w-4 h-4" />
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => markAsUnpaid(bill.id)}>
                           Unpaid
@@ -906,6 +907,28 @@ export const BillManagement = () => {
           </div>
         )}
       </Card>
+
+      {/* Receipt Dialog */}
+      <Dialog open={receiptDialog.open} onOpenChange={(open) => setReceiptDialog({ open, bill: null })}>
+        <DialogContent className="w-[95vw] max-w-sm mx-auto p-0 bg-white/95 backdrop-blur-sm max-h-[70vh] overflow-hidden">
+          <DialogHeader className="px-4 pt-4">
+            <DialogTitle className="text-lg">Payment Receipt</DialogTitle>
+          </DialogHeader>
+          <div className="px-4 pb-4 max-h-[calc(70vh-80px)] overflow-y-auto">
+            {receiptDialog.bill && (
+              <BillReceipt
+                bill={receiptDialog.bill}
+                member={{
+                  fullName: getMemberById(receiptDialog.bill.memberId)?.fullName || 'Member',
+                  flatNumber: getMemberById(receiptDialog.bill.memberId)?.flatNumber || 'N/A'
+                }}
+                societyName={societySettings?.societyName || 'Society'}
+                onClose={() => setReceiptDialog({ open: false, bill: null })}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
     </>

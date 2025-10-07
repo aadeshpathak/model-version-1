@@ -112,6 +112,7 @@ const Index = () => {
     uid,
     userData,
     isInitializing,
+    currentEnvironment,
     updateUserData,
     handleLogin,
     handleLogout,
@@ -159,8 +160,8 @@ const Index = () => {
       // Mark overdue bills on app load
       markOverdueBills();
 
-      const unsubscribeBills = getMemberBills(uid, setBills);
-      const unsubscribeNotices = getMemberNotices(uid, setNotices);
+      const unsubscribeBills = getMemberBills(uid, setBills, currentEnvironment);
+      const unsubscribeNotices = getMemberNotices(uid, setNotices, currentEnvironment);
       return () => {
         unsubscribeBills();
         unsubscribeNotices();
@@ -323,7 +324,17 @@ const Index = () => {
             </motion.div>
 
             <div className="px-6 space-y-4">
-              {bills.length > 0 ? bills.map((bill: Bill, index) => (
+              {bills.length > 0 ? bills
+                .sort((a, b) => {
+                  // Pending bills first
+                  if (a.status === 'pending' && b.status !== 'pending') return -1;
+                  if (a.status !== 'pending' && b.status === 'pending') return 1;
+                  // Then by dueDate descending (most recent first) for chronological order
+                  const dateA = a.dueDate?.toDate?.() || new Date(0);
+                  const dateB = b.dueDate?.toDate?.() || new Date(0);
+                  return dateB.getTime() - dateA.getTime();
+                })
+                .map((bill: Bill, index) => (
                 <motion.div
                   key={bill.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -1166,11 +1177,11 @@ const Index = () => {
 
         {/* Receipt Dialog */}
         <Dialog open={receiptDialog.open} onOpenChange={(open) => setReceiptDialog({ open, bill: null })}>
-          <DialogContent className="w-[90vw] max-w-md mx-auto p-0 max-h-[80vh] overflow-hidden">
-            <DialogHeader className="px-4 pt-4 sm:px-6 sm:pt-6">
-              <DialogTitle className="text-lg sm:text-xl">Payment Receipt</DialogTitle>
+          <DialogContent className="max-w-sm mx-auto p-0 max-h-[70vh] overflow-hidden">
+            <DialogHeader className="px-4 pt-4">
+              <DialogTitle className="text-lg">Payment Receipt</DialogTitle>
             </DialogHeader>
-            <div className="px-4 pb-4 sm:px-6 sm:pb-6 max-h-[calc(80vh-80px)] overflow-y-auto">
+            <div className="px-4 pb-4 max-h-[calc(70vh-80px)] overflow-y-auto">
               {receiptDialog.bill && (
                 <BillReceipt
                   bill={receiptDialog.bill}
